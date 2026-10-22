@@ -11,17 +11,17 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="Material.Icons.Avalonia" Version="2.4.1" />
     <!-- Core -->
-    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.13" />
     <PackageVersion Include="Tmds.DBus.Protocol" Version="0.21.3" />
-    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.12" />
-    <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.13" />
+    <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="10.0.13" />
     <!-- Same version for both, so the code is identical on Windows and Linux -->
-    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.24.4" />
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.31.0" />
     <PackageVersion Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
     <!-- Tests -->
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <!-- Draws test pictures (cards, documents) for the on-device checks -->
     <PackageVersion Include="SkiaSharp" Version="2.88.9" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.9" />
