@@ -376,8 +376,14 @@ jobs:
           } > notes.md
           files=(dist/ImmichSplash-Setup.exe dist/ImmichSplash-Portable.zip dist/ImmichSplash-linux-x64.tar.gz dist/ImmichSplash.flatpak)
           [[ -f "dist/$APP_ID.flatpakref" ]] && files+=("dist/$APP_ID.flatpakref")
-          if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" "${files[@]}" --clobber   # carrying on after a stop: refresh the downloads
+          # Releases are immutable once published (repository setting): carrying on after a stop can only
+          # finish a draft that's still there, never change the files of a published release.
+          if draft=$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [[ "$draft" == "true" ]]; then
+              gh release upload "$TAG" "${files[@]}" --clobber && gh release edit "$TAG" --draft=false
+            else
+              echo "$TAG is already published; its files can't change."
+            fi
           else
             extra=(); [[ "$STABLE" != "true" ]] && extra=(--prerelease)
             gh release create "$TAG" "${files[@]}" --title "Immich Splash $VERSION" --notes-file notes.md --verify-tag "${extra[@]}"
