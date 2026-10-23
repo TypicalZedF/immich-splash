@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:ImmichSplash.App.Services"
+             xmlns:vm="using:ImmichSplash.App.ViewModels"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             x:Class="ImmichSplash.App.Views.UpdatePreferencesView"
+             x:DataType="vm:UpdatePreferencesViewModel">
+  <Border Classes="card" Width="480" Padding="28,26" CornerRadius="22" HorizontalAlignment="Center" VerticalAlignment="Center"
+          BoxShadow="0 18 50 0 #40000000">
+    <StackPanel Spacing="16">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <mi:MaterialIcon Kind="Update" Width="26" Height="26" Foreground="{DynamicResource AppPrimaryBrush}" VerticalAlignment="Center" />
+        <TextBlock Classes="h2" l:Tr.Text="How should updates work?" TextWrapping="Wrap" VerticalAlignment="Center" />
+      </StackPanel>
+      <TextBlock Classes="caption" TextWrapping="Wrap"
+                 l:Tr.Text="New versions bring fixes and new features. Updates come only from the official GitHub releases." />
+
+      <StackPanel Spacing="10">
+        <RadioButton GroupName="updateMode" IsChecked="{Binding ModeAutomatic}" IsVisible="{x:Static vm:UpdatePreferencesViewModel.CanSelfUpdate}">
+          <StackPanel>
+            <TextBlock Classes="title" l:Tr.Text="Install updates automatically (recommended)" TextWrapping="Wrap" />
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       l:Tr.Text="Updates install quietly while the window is closed and nothing is uploading." />
+          </StackPanel>
+        </RadioButton>
+        <RadioButton GroupName="updateMode" IsChecked="{Binding ModeAsk}">
+          <StackPanel>
+            <TextBlock Classes="title" Text="{Binding AskText}" TextWrapping="Wrap" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" l:Tr.Text="You choose when to update, from Settings." />
+          </StackPanel>
+        </RadioButton>
+        <RadioButton GroupName="updateMode" IsChecked="{Binding ModeOff}">
+          <StackPanel>
+            <TextBlock Classes="title" l:Tr.Text="Don't check for updates" TextWrapping="Wrap" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" l:Tr.Text="You can still check by hand in Settings." />
+          </StackPanel>
+        </RadioButton>
+      </StackPanel>
+
+      <Border Classes="divider" />
+
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" IsEnabled="{Binding ChecksForUpdates}">
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Classes="title" l:Tr.Text="Update channel" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" l:Tr.Text="Get the beta to try new features before everyone else." />
+        </StackPanel>
+        <Border Grid.Column="1" Classes="segmented" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal">
+            <RadioButton Classes="segment" GroupName="updateChannel" IsChecked="{Binding ChannelStable}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <mi:MaterialIcon Kind="ShieldCheckOutline" Width="16" Height="16" />
+                <TextBlock l:Tr.Text="Stable" />
+              </StackPanel>
+            </RadioButton>
+            <RadioButton Classes="segment" GroupName="updateChannel" IsChecked="{Binding ChannelBeta}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <mi:MaterialIcon Kind="FlaskOutline" Width="16" Height="16" />
+                <TextBlock l:Tr.Text="Beta" />
+              </StackPanel>
+            </RadioButton>
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,6,0,0">
+        <TextBlock Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap" l:Tr.Text="You can change this any time in Settings." />
+        <Button Grid.Column="1" Classes="primary" l:Tr.Content="Save" Command="{Binding SaveCommand}" />
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>

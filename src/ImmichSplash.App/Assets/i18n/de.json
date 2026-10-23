@@ -1040,5 +1040,14 @@
  "Use your Linux login to unlock. Backup keeps running in the background.": "Entsperre mit deiner Linux-Anmeldung. Die Sicherung läuft im Hintergrund weiter.",
  "Your Linux login can't be checked right now. Use “Forgot how to unlock?” below.": "Deine Linux-Anmeldung kann gerade nicht geprüft werden. Nutze unten „Entsperren vergessen?“.",
  "Your Linux login couldn't verify you. Try again.": "Deine Linux-Anmeldung konnte dich nicht bestätigen. Versuche es noch einmal.",
- "Your Linux login couldn't be checked. It needs a desktop that shows sign-in prompts (like KDE Plasma or GNOME). Or use a password.": "Deine Linux-Anmeldung konnte nicht geprüft werden. Dafür braucht es einen Desktop, der Anmeldeabfragen zeigt (wie KDE Plasma oder GNOME). Oder nutze ein Passwort."
+ "Your Linux login couldn't be checked. It needs a desktop that shows sign-in prompts (like KDE Plasma or GNOME). Or use a password.": "Deine Linux-Anmeldung konnte nicht geprüft werden. Dafür braucht es einen Desktop, der Anmeldeabfragen zeigt (wie KDE Plasma oder GNOME). Oder nutze ein Passwort.",
+ "How should updates work?": "Wie sollen Updates funktionieren?",
+ "Install updates automatically (recommended)": "Updates automatisch installieren (empfohlen)",
+ "Download updates, then ask me before installing": "Updates herunterladen, aber vor der Installation fragen",
+ "Tell me when there's a new version": "Mir Bescheid geben, wenn es eine neue Version gibt",
+ "You choose when to update, from Settings.": "Du entscheidest in den Einstellungen, wann aktualisiert wird.",
+ "Don't check for updates": "Nicht nach Updates suchen",
+ "You can still check by hand in Settings.": "Du kannst trotzdem in den Einstellungen von Hand suchen.",
+ "You can change this any time in Settings.": "Du kannst das jederzeit in den Einstellungen ändern.",
+ "New versions bring fixes and new features. Updates come only from the official GitHub releases.": "Neue Versionen bringen Fehlerbehebungen und neue Funktionen. Updates kommen nur von den offiziellen GitHub-Releases."
 }

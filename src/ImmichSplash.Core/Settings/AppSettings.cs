@@ -225,6 +225,9 @@ public sealed class AppSettings
     public bool AutoInstallUpdates { get; set; } = true;
     public UpdateChannel UpdateChannel { get; set; } = UpdateChannel.Stable;
 
+    /// <summary>Set by first-time setup: ask how updates should work the next time the main window shows.</summary>
+    public bool UpdatePreferencesPending { get; set; }
+
     // Desktop background: a photo from Immich, changed every so often (like a digital picture frame).
     public bool WallpaperEnabled { get; set; }
     public WallpaperSource WallpaperSource { get; set; } = WallpaperSource.Favorites;

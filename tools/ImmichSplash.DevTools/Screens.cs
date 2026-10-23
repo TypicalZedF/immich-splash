@@ -618,6 +618,10 @@ static class Screens
             main.OfferUpload([dropped]);
             Shot(main, outDir, $"45-drop-upload-{suffix}", settle: TimeSpan.FromSeconds(1));
             main.CloseOverlay(main.Overlay);
+            // Asked once after first-time setup: how updates should work.
+            main.ShowOverlay(new UpdatePreferencesViewModel(main));
+            Shot(main, outDir, $"46-update-prefs-{suffix}");
+            main.CloseOverlay(main.Overlay);
             main.Dispose();
         }
         // Settings opens on the first click (it isn't in the sidebar, which used to "unselect" it),

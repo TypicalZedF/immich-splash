@@ -20,6 +20,7 @@
     <DataTemplate DataType="vm:DropUploadViewModel"><views:DropUploadView /></DataTemplate>
     <DataTemplate DataType="vm:AlbumEditorViewModel"><views:AlbumEditorView /></DataTemplate>
     <DataTemplate DataType="vm:NameDialogViewModel"><views:NameDialogView /></DataTemplate>
+    <DataTemplate DataType="vm:UpdatePreferencesViewModel"><views:UpdatePreferencesView /></DataTemplate>
     <DataTemplate DataType="vm:MergePeopleViewModel"><views:MergePeopleView /></DataTemplate>
     <DataTemplate DataType="vm:ShareManagerViewModel"><views:ShareManagerView /></DataTemplate>
     <DataTemplate DataType="vm:PhotoEditorViewModel"><views:PhotoEditorView /></DataTemplate>

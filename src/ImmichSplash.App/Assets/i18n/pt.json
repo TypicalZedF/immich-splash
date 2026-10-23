@@ -1040,5 +1040,14 @@
  "Use your Linux login to unlock. Backup keeps running in the background.": "Use seu login do Linux para desbloquear. O backup continua em segundo plano.",
  "Your Linux login can't be checked right now. Use “Forgot how to unlock?” below.": "Não é possível verificar seu login do Linux agora. Use “Esqueceu como desbloquear?” abaixo.",
  "Your Linux login couldn't verify you. Try again.": "Seu login do Linux não conseguiu verificar você. Tente de novo.",
- "Your Linux login couldn't be checked. It needs a desktop that shows sign-in prompts (like KDE Plasma or GNOME). Or use a password.": "Não foi possível verificar seu login do Linux. É preciso um desktop que mostre pedidos de login (como KDE Plasma ou GNOME). Ou use uma senha."
+ "Your Linux login couldn't be checked. It needs a desktop that shows sign-in prompts (like KDE Plasma or GNOME). Or use a password.": "Não foi possível verificar seu login do Linux. É preciso um desktop que mostre pedidos de login (como KDE Plasma ou GNOME). Ou use uma senha.",
+ "How should updates work?": "Como as atualizações devem funcionar?",
+ "Install updates automatically (recommended)": "Instalar atualizações automaticamente (recomendado)",
+ "Download updates, then ask me before installing": "Baixar atualizações e perguntar antes de instalar",
+ "Tell me when there's a new version": "Avisar quando houver uma nova versão",
+ "You choose when to update, from Settings.": "Você escolhe quando atualizar, nas Configurações.",
+ "Don't check for updates": "Não procurar atualizações",
+ "You can still check by hand in Settings.": "Você ainda pode verificar manualmente nas Configurações.",
+ "You can change this any time in Settings.": "Você pode mudar isso a qualquer momento nas Configurações.",
+ "New versions bring fixes and new features. Updates come only from the official GitHub releases.": "Novas versões trazem correções e recursos novos. As atualizações vêm apenas das versões oficiais no GitHub."
 }

@@ -1040,5 +1040,14 @@
  "Use your Linux login to unlock. Backup keeps running in the background.": "Usa tu inicio de sesión de Linux para desbloquear. La copia de seguridad sigue en segundo plano.",
  "Your Linux login can't be checked right now. Use “Forgot how to unlock?” below.": "Ahora no se puede comprobar tu inicio de sesión de Linux. Usa «¿Olvidaste cómo desbloquear?» abajo.",
  "Your Linux login couldn't verify you. Try again.": "Tu inicio de sesión de Linux no pudo verificarte. Inténtalo de nuevo.",
- "Your Linux login couldn't be checked. It needs a desktop that shows sign-in prompts (like KDE Plasma or GNOME). Or use a password.": "No se pudo comprobar tu inicio de sesión de Linux. Hace falta un escritorio que muestre avisos de inicio de sesión (como KDE Plasma o GNOME). O usa una contraseña."
+ "Your Linux login couldn't be checked. It needs a desktop that shows sign-in prompts (like KDE Plasma or GNOME). Or use a password.": "No se pudo comprobar tu inicio de sesión de Linux. Hace falta un escritorio que muestre avisos de inicio de sesión (como KDE Plasma o GNOME). O usa una contraseña.",
+ "How should updates work?": "¿Cómo quieres que funcionen las actualizaciones?",
+ "Install updates automatically (recommended)": "Instalar actualizaciones automáticamente (recomendado)",
+ "Download updates, then ask me before installing": "Descargar actualizaciones y preguntarme antes de instalarlas",
+ "Tell me when there's a new version": "Avisarme cuando haya una nueva versión",
+ "You choose when to update, from Settings.": "Tú decides cuándo actualizar, desde Ajustes.",
+ "Don't check for updates": "No buscar actualizaciones",
+ "You can still check by hand in Settings.": "Aún puedes buscarlas manualmente en Ajustes.",
+ "You can change this any time in Settings.": "Puedes cambiarlo cuando quieras en Ajustes.",
+ "New versions bring fixes and new features. Updates come only from the official GitHub releases.": "Las nuevas versiones traen correcciones y funciones nuevas. Las actualizaciones solo vienen de las versiones oficiales en GitHub."
 }

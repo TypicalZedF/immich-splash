@@ -22,7 +22,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         else if (IsLockEnabled)
             Content = new LockViewModel(this, Unlock);
         else
+        {
             Content = new ShellViewModel(this);
+            AskUpdatePreferences();
+        }
     }
 
     [ObservableProperty]
@@ -100,6 +103,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         Replace(new ShellViewModel(this));
         Navigate(page);
+        AskUpdatePreferences();
+    }
+
+    /// <summary>Once, after first-time setup: how should the app update itself?</summary>
+    void AskUpdatePreferences()
+    {
+        if (AppServices.Settings.Current.UpdatePreferencesPending && AppServices.Updates.IsEnabled)
+            ShowOverlay(new UpdatePreferencesViewModel(this));
     }
 
     /// <summary>Back to setup. With <paramref name="resumeSignIn"/>, jumps straight to signing in to the known server.</summary>

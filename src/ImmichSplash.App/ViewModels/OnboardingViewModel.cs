@@ -432,6 +432,7 @@ public sealed partial class OnboardingViewModel : ViewModelBase, IDisposable
             s.LaunchAtStartup = LaunchAtStartup;
             s.Paused = false;
             s.PausedUntil = null;
+            s.UpdatePreferencesPending = true; // asked once the main window shows
         });
         Autostart.SetEnabled(LaunchAtStartup);
 
