@@ -147,6 +147,28 @@ public sealed class StateDatabase
         tx.Commit();
     }
 
+    /// <summary>
+    /// Forgets "nothing found" results saved before <paramref name="before"/> for these assets, so they get checked again.
+    /// Results you've already decided on are kept. Returns how many were forgotten.
+    /// </summary>
+    public int ForgetCleanScans(IEnumerable<string> assetIds, DateTime before)
+    {
+        using var db = Open();
+        using var tx = db.BeginTransaction();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "DELETE FROM privacy_scan WHERE asset_id = $id AND kinds = 0 AND decision = 0 AND scanned_at < $t";
+        var id = cmd.Parameters.Add("$id", SqliteType.Text);
+        cmd.Parameters.AddWithValue("$t", before.Ticks);
+        var forgotten = 0;
+        foreach (var assetId in assetIds)
+        {
+            id.Value = assetId;
+            forgotten += cmd.ExecuteNonQuery();
+        }
+        tx.Commit();
+        return forgotten;
+    }
+
     /// <summary>Forgets every result (e.g. when the check is turned off and its data cleared).</summary>
     public void ClearPrivacyScans()
     {

@@ -11,6 +11,7 @@
       <ContentControl.DataTemplates>
         <DataTemplate DataType="vm:PrivacyReviewViewModel">
           <!-- One scroll for the whole page, so it works on small screens -->
+          <Grid RowDefinitions="*,Auto">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled">
             <StackPanel Spacing="12" Margin="28,0,24,24">
               <Border Classes="card" Padding="16,14" CornerRadius="16">
@@ -21,13 +22,13 @@
                     <TextBlock TextWrapping="Wrap"
                                l:Tr.Text="Finds photos you may want in the locked folder: nudity, payment cards, IDs, bank and tax papers, passwords and medical records. Everything is checked on this PC; your photos and the results are never sent anywhere, and nothing is moved without you." />
                     <WrapPanel Orientation="Horizontal">
-                      <ToggleSwitch IsChecked="{Binding IsEnabled}" l:Tr.Content="Check my library" Margin="0,0,24,0" />
-                      <ToggleSwitch IsChecked="{Binding UseGpu}" IsVisible="{Binding OffersGpu}" l:Tr.Content="Use the graphics card" Margin="0,0,24,0" />
-                      <ToggleSwitch IsChecked="{Binding OnlyWhenIdle}" l:Tr.Content="Only when I'm not using the PC" />
+                      <ToggleSwitch IsChecked="{Binding IsEnabled}" l:Tr.Content="Check my library" MinWidth="250" Margin="0,0,16,4" />
+                      <ToggleSwitch IsChecked="{Binding UseGpu}" IsVisible="{Binding OffersGpu}" l:Tr.Content="Use the graphics card" MinWidth="250" Margin="0,0,16,4" />
+                      <ToggleSwitch IsChecked="{Binding OnlyWhenIdle}" l:Tr.Content="Only when I'm not using the PC" MinWidth="250" Margin="0,0,16,4" />
+                      <ToggleSwitch IsChecked="{Binding Thorough}" IsEnabled="{Binding !IsDownloadingThorough}" l:Tr.Content="Thorough check" MinWidth="250" Margin="0,0,16,4" />
                     </WrapPanel>
                     <!-- Thorough check: CLIP, downloaded once when turned on -->
                     <StackPanel Spacing="4">
-                      <ToggleSwitch IsChecked="{Binding Thorough}" IsEnabled="{Binding !IsDownloadingThorough}" l:Tr.Content="Thorough check" />
                       <TextBlock Classes="caption" Text="{Binding ThoroughText}" TextWrapping="Wrap" />
                       <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsDownloadingThorough}">
                         <ProgressBar Value="{Binding DownloadProgress}" Minimum="0" Maximum="1" Width="240" Height="4" VerticalAlignment="Center" />
@@ -36,29 +37,32 @@
                       <Button Classes="ghost" Padding="8,4" Margin="-8,0,0,0" HorizontalAlignment="Left" Command="{Binding RemoveThoroughCommand}"
                               IsVisible="{Binding CanRemoveThorough}" l:Tr.Content="Remove the download" />
                     </StackPanel>
-                    <StackPanel Spacing="6">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <mi:MaterialIcon Kind="Loading" Classes="spin" Width="14" Height="14" IsVisible="{Binding IsWorking}" />
-                        <TextBlock Classes="caption" Text="{Binding StatusText}" TextWrapping="Wrap" />
+                    <Border Height="1" Background="{DynamicResource AppDividerBrush}" Margin="0,2" />
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel Spacing="6" VerticalAlignment="Center">
+                        <Grid ColumnDefinitions="Auto,*">
+                          <mi:MaterialIcon Kind="Loading" Classes="spin" Width="14" Height="14" IsVisible="{Binding IsWorking}" />
+                          <TextBlock Grid.Column="1" Classes="caption" Margin="8,0,0,0" Text="{Binding StatusText}" TextWrapping="Wrap" />
+                        </Grid>
+                        <ProgressBar Value="{Binding Progress}" Minimum="0" Maximum="1" IsVisible="{Binding ShowProgress}" Height="4" />
                       </StackPanel>
-                      <ProgressBar Value="{Binding Progress}" Minimum="0" Maximum="1" IsVisible="{Binding ShowProgress}" Height="4" />
-                    </StackPanel>
-                    <!-- With the setting off: check the library just this once -->
-                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsEnabled}">
-                      <Button Classes="secondary" Command="{Binding ScanOnceCommand}" IsVisible="{Binding !IsOneTimeRunning}"
-                              l:Tr.Tip="Checks your library now and stops when it's done. New photos aren't checked until you do it again.">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                          <mi:MaterialIcon Kind="ShieldSearch" Width="16" Height="16" />
-                          <TextBlock l:Tr.Text="Check once now" />
-                        </StackPanel>
-                      </Button>
-                      <Button Classes="secondary" Command="{Binding StopOnceCommand}" IsVisible="{Binding IsOneTimeRunning}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                          <mi:MaterialIcon Kind="Stop" Width="16" Height="16" />
-                          <TextBlock l:Tr.Text="Stop checking" />
-                        </StackPanel>
-                      </Button>
-                    </StackPanel>
+                      <!-- With the setting off: check the library just this once -->
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0" VerticalAlignment="Center" IsVisible="{Binding !IsEnabled}">
+                        <Button Classes="secondary" Command="{Binding ScanOnceCommand}" IsVisible="{Binding !IsOneTimeRunning}"
+                                l:Tr.Tip="Checks your library now and stops when it's done. New photos aren't checked until you do it again.">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <mi:MaterialIcon Kind="ShieldSearch" Width="16" Height="16" />
+                            <TextBlock l:Tr.Text="Check once now" />
+                          </StackPanel>
+                        </Button>
+                        <Button Classes="secondary" Command="{Binding StopOnceCommand}" IsVisible="{Binding IsOneTimeRunning}">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <mi:MaterialIcon Kind="Stop" Width="16" Height="16" />
+                            <TextBlock l:Tr.Text="Stop checking" />
+                          </StackPanel>
+                        </Button>
+                      </StackPanel>
+                    </Grid>
                     <Button Classes="ghost" Command="{Binding ToggleDetailsCommand}" Padding="8,4" Margin="-8,0,0,0" HorizontalAlignment="Left">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <mi:MaterialIcon Kind="InformationOutline" Width="16" Height="16" />
@@ -169,52 +173,36 @@
                   </Button>
                 </StackPanel>
               </Border>
-              <!-- Filters: what kind of thing, and how sure the check is -->
-              <StackPanel Spacing="8" IsVisible="{Binding HasKindFilters}">
-                <ItemsControl ItemsSource="{Binding KindFilters}">
-                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:PrivacyKindFilter">
-                      <ToggleButton Classes="filterChip" IsChecked="{Binding IsOn}" Content="{Binding Label}" Margin="0,0,8,6" />
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
-              <Grid ColumnDefinitions="Auto,200,Auto,*,Auto" IsVisible="{Binding ShowConfidenceFilter}">
-                <TextBlock Classes="secondary" l:Tr.Text="How sure" VerticalAlignment="Center" Margin="0,0,10,0"
-                           l:Tr.Tip="For nudity, it's the detector's own score. For text, how strong the match is: a card number that passes the card checksum or a passport's machine-readable lines count as 95%, word matches as 80%." />
-                <Slider Grid.Column="1" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding MinConfidence}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="2" Classes="secondary" Text="{Binding MinConfidenceText}" VerticalAlignment="Center" Margin="10,0,0,0" />
-                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                  <TextBlock Classes="caption" Text="{Binding FilterSummary}" VerticalAlignment="Center" />
-                  <Button Classes="ghost" Padding="8,3" l:Tr.Content="Clear filters" Command="{Binding ClearFiltersCommand}"
-                          IsVisible="{Binding FilterSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                </StackPanel>
-              </Grid>
-              <WrapPanel IsVisible="{Binding HasItems}">
-                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center" Margin="0,0,24,8">
-                  <TextBlock Classes="h3" Text="{Binding Count, StringFormat='{}{0:N0}'}" VerticalAlignment="Center" />
-                  <TextBlock Classes="secondary" l:Tr.Text="to review" VerticalAlignment="Center" />
-                  <TextBlock Classes="secondary" Text="{Binding SelectionText}" IsVisible="{Binding HasSelection}" VerticalAlignment="Center" />
-                </StackPanel>
-                <WrapPanel>
-                  <CheckBox IsChecked="{Binding ShowPictures}" l:Tr.Content="Show pictures" VerticalAlignment="Center" Margin="0,0,16,8" />
-                  <Button Classes="ghost" l:Tr.Content="Select all" Command="{Binding SelectAllCommand}" Margin="0,0,8,8" />
-                  <Button Classes="secondary" l:Tr.Content="Not sensitive" Command="{Binding NotSensitiveCommand}" Margin="0,0,8,8" />
-                  <Button Classes="secondary danger" Command="{Binding DeleteCommand}" l:Tr.Tip="Move to the trash in Immich" Margin="0,0,8,8">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                      <mi:MaterialIcon Kind="TrashCanOutline" Width="16" Height="16" />
-                      <TextBlock l:Tr.Text="Delete" />
+              <Border Classes="card" Padding="16,12,16,6" CornerRadius="16" IsVisible="{Binding HasItems}">
+                <StackPanel Spacing="6">
+                  <!-- Filters: what kind of thing, and how sure the check is -->
+                  <StackPanel Spacing="8" IsVisible="{Binding HasKindFilters}">
+                    <ItemsControl ItemsSource="{Binding KindFilters}">
+                      <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PrivacyKindFilter">
+                          <ToggleButton Classes="filterChip" IsChecked="{Binding IsOn}" Content="{Binding Label}" Margin="0,0,8,6" />
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                  <Grid ColumnDefinitions="Auto,200,Auto,*,Auto" IsVisible="{Binding ShowConfidenceFilter}">
+                    <TextBlock Classes="secondary" l:Tr.Text="How sure" VerticalAlignment="Center" Margin="0,0,10,0"
+                               l:Tr.Tip="For nudity, it's the detector's own score. For text, how strong the match is: a card number that passes the card checksum or a passport's machine-readable lines count as 95%, word matches as 80%." />
+                    <Slider Grid.Column="1" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding MinConfidence}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Classes="secondary" Text="{Binding MinConfidenceText}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                      <TextBlock Classes="caption" Text="{Binding FilterSummary}" VerticalAlignment="Center" />
+                      <Button Classes="ghost" Padding="8,3" l:Tr.Content="Clear filters" Command="{Binding ClearFiltersCommand}"
+                              IsVisible="{Binding FilterSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     </StackPanel>
-                  </Button>
-                  <Button Classes="primary" Command="{Binding MoveToLockedCommand}" Margin="0,0,0,8">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                      <mi:MaterialIcon Kind="LockOutline" Width="16" Height="16" />
-                      <TextBlock l:Tr.Text="Move to locked folder" />
-                    </StackPanel>
-                  </Button>
-                </WrapPanel>
-              </WrapPanel>
+                  </Grid>
+                  <Grid ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,2">
+                    <CheckBox IsChecked="{Binding ShowPictures}" l:Tr.Content="Show pictures" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Classes="ghost" l:Tr.Content="Select all" Command="{Binding SelectAllCommand}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                  </Grid>
+                </StackPanel>
+              </Border>
               <ItemsControl ItemsSource="{Binding Items}" IsVisible="{Binding HasItems}">
                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
@@ -253,6 +241,34 @@
               </StackPanel>
             </StackPanel>
           </ScrollViewer>
+          <!-- Pinned, so the actions stay in reach however long the list is -->
+          <Border Grid.Row="1" Classes="card" Padding="16,10" CornerRadius="16" Margin="28,4,24,16" IsVisible="{Binding HasItems}">
+            <Grid ColumnDefinitions="*,Auto">
+              <WrapPanel VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,20,0">
+                  <TextBlock Classes="h3" Text="{Binding Count, StringFormat='{}{0:N0}'}" VerticalAlignment="Center" />
+                  <TextBlock Classes="secondary" l:Tr.Text="to review" VerticalAlignment="Center" />
+                  <TextBlock Classes="secondary" Text="{Binding SelectionText}" IsVisible="{Binding HasSelection}" VerticalAlignment="Center" />
+                </StackPanel>
+              </WrapPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0" VerticalAlignment="Center">
+                <Button Classes="secondary" l:Tr.Content="Not sensitive" Command="{Binding NotSensitiveCommand}" />
+                <Button Classes="secondary danger" Command="{Binding DeleteCommand}" l:Tr.Tip="Move to the trash in Immich">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <mi:MaterialIcon Kind="TrashCanOutline" Width="16" Height="16" />
+                    <TextBlock l:Tr.Text="Delete" />
+                  </StackPanel>
+                </Button>
+                <Button Classes="primary" Command="{Binding MoveToLockedCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <mi:MaterialIcon Kind="LockOutline" Width="16" Height="16" />
+                    <TextBlock l:Tr.Text="Move to locked folder" />
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+            </Grid>
+          </Border>
+          </Grid>
         </DataTemplate>
       </ContentControl.DataTemplates>
     </ContentControl>

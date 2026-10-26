@@ -39,6 +39,8 @@ public sealed class PrivacyScanService : IDisposable
     // only a very sure score counts as nudity on its own.
     const float ClipExplicitThreshold = 0.9f;
     const float ClipRevealingThreshold = 0.6f;
+    // Videos checked before this only had their preview looked at; the small thumbnail often scores higher.
+    static readonly DateTime VideoRecheckBefore = new(2026, 10, 26, 5, 0, 0, DateTimeKind.Utc);
     static readonly TimeSpan IdleNeeded = TimeSpan.FromMinutes(2);
     static readonly TimeSpan RecheckLibraryEvery = TimeSpan.FromHours(1);
 
@@ -132,7 +134,11 @@ public sealed class PrivacyScanService : IDisposable
                     return;
                 // Not even the photo list is fetched until it's allowed to run (e.g. on a home network).
                 await WaitUntilAllowedAsync(Status.Checked, Status.Total, onGpu, ct);
-                var library = await ListLibraryAsync(client, ct);
+                var (library, videos) = await ListLibraryAsync(client, ct);
+                // Videos saved as "nothing found" by older builds, which stored a failed preview that way: look again.
+                var forgotten = await Task.Run(() => _db.ForgetCleanScans(videos, VideoRecheckBefore), ct);
+                if (forgotten > 0)
+                    Log.Info($"Privacy check: looking at {forgotten} videos again");
                 var done = await Task.Run(() => _db.GetPrivacyScanned(version), ct);
                 var todo = library.Where(id => !done.Contains(id)).ToList();
                 var checkedCount = library.Count - todo.Count;
@@ -147,16 +153,40 @@ public sealed class PrivacyScanService : IDisposable
                 {
                     if (await WaitUntilAllowedAsync(checkedCount, library.Count, onGpu, ct))
                         recent.Clear(); // a pause isn't part of the pace
-                    var data = await (next ?? FetchAsync(client, todo[i], ct));
-                    next = i + 1 < todo.Count && PauseReason() is null ? FetchAsync(client, todo[i + 1], ct) : null;
-                    if (data is not null && _decode(data) is { } image)
+                    var data = await (next ?? FetchAsync(client, todo[i], AssetImageSize.Preview, ct));
+                    next = i + 1 < todo.Count && PauseReason() is null ? FetchAsync(client, todo[i + 1], AssetImageSize.Preview, ct) : null;
+                    var image = data is null ? null : _decode(data);
+                    var found = SensitiveKind.None;
+                    double best = 0;
+                    var looked = false;
+                    if (image is not null)
                     {
-                        var (kinds, score) = Check(checks, image);
-                        _db.SavePrivacyScan(todo[i], version, (int)kinds, score);
+                        (found, best) = Check(checks, image);
+                        looked = true;
+                    }
+                    if (videos.Contains(todo[i]))
+                    {
+                        // The small thumbnail is a different picture to the model than the big preview, and often
+                        // scores higher: keep whichever sees more.
+                        var small = await FetchAsync(client, todo[i], AssetImageSize.Thumbnail, ct);
+                        if (small is not null && _decode(small) is { } smallImage)
+                        {
+                            var (kinds2, score2) = Check(checks, smallImage);
+                            found |= kinds2;
+                            best = Math.Max(best, score2);
+                            looked = true;
+                        }
+                    }
+                    if (looked)
+                    {
+                        _db.SavePrivacyScan(todo[i], version, (int)found, best);
                     }
                     else
                     {
-                        _db.SavePrivacyScan(todo[i], version, 0, 0); // no picture to check (e.g. a format we can't open)
+                        // Not saved as checked, so a later pass tries again (a failed download or decode must not
+                        // look like "nothing found").
+                        Log.Warn($"Privacy check skipped {(videos.Contains(todo[i]) ? "video" : "photo")} {todo[i]}: " +
+                            (data is null ? "no preview from the server" : "the preview could not be decoded"));
                     }
                     checkedCount++;
                     recent.Enqueue(DateTime.UtcNow);
@@ -258,9 +288,10 @@ public sealed class PrivacyScanService : IDisposable
     }
 
     /// <summary>Every photo and video in the timeline and the archive (not the locked folder or the trash).</summary>
-    static async Task<List<string>> ListLibraryAsync(ImmichClient client, CancellationToken ct)
+    static async Task<(List<string> Ids, HashSet<string> Videos)> ListLibraryAsync(ImmichClient client, CancellationToken ct)
     {
         var ids = new List<string>();
+        var videos = new HashSet<string>(StringComparer.Ordinal);
         foreach (var filter in new[] { TimelineFilter.All, new TimelineFilter(Visibility: "archive") })
         {
             foreach (var bucket in await client.GetTimeBucketsAsync(filter, ct))
@@ -268,17 +299,21 @@ public sealed class PrivacyScanService : IDisposable
                 if (bucket.Count == 0)
                     continue;
                 foreach (var asset in await client.GetTimeBucketAsync(bucket.Key, filter, ct))
+                {
                     ids.Add(asset.Id);
+                    if (!asset.IsImage)
+                        videos.Add(asset.Id);
+                }
             }
         }
-        return ids.Distinct(StringComparer.Ordinal).ToList();
+        return (ids.Distinct(StringComparer.Ordinal).ToList(), videos);
     }
 
-    static async Task<byte[]?> FetchAsync(ImmichClient client, string assetId, CancellationToken ct)
+    static async Task<byte[]?> FetchAsync(ImmichClient client, string assetId, AssetImageSize size, CancellationToken ct)
     {
         try
         {
-            return await client.GetAssetImageAsync(assetId, AssetImageSize.Preview, ct);
+            return await client.GetAssetImageAsync(assetId, size, ct);
         }
         catch (ImmichApiException ex) when (ex.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.BadRequest)
         {
