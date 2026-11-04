@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/TypicalZedF/immich-splash/security/advisories/new
+    about: Please report security problems privately, not in a public issue.
+  - name: Problem with the Immich server or its web or mobile apps
+    url: https://github.com/immich-app/immich/issues
+    about: This app is unofficial. Problems with Immich itself belong with the Immich project.

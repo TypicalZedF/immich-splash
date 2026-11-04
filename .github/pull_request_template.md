@@ -11,7 +11,7 @@
 ## Checklist
 
 - [ ] This PR is focused on a single change
-- [ ] I have read [CONTRIBUTING.md](../CONTRIBUTING.md)
+- [ ] I have read [CONTRIBUTING.md](https://github.com/TypicalZedF/immich-splash/blob/main/CONTRIBUTING.md)
 - [ ] I ran `dotnet test` and the tests pass
 - [ ] I updated the documentation if needed
 - [ ] I have no secrets, API keys, or personal data in this PR

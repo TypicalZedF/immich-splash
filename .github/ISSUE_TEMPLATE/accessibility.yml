@@ -1,0 +1,40 @@
+name: Accessibility problem
+description: Something is hard or impossible to use with your setup
+title: "[Accessibility] "
+labels: ["accessibility"]
+body:
+  - type: textarea
+    id: barrier
+    attributes:
+      label: What's getting in the way?
+      description: Which part of the app is it, and what can't you do?
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: What do you use?
+      description: For example a screen reader (and which one), keyboard only, high contrast, display scaling or larger text.
+    validations:
+      required: true
+  - type: textarea
+    id: better
+    attributes:
+      label: What would work better for you?
+    validations:
+      required: false
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: You can find it in Settings.
+      placeholder: e.g. 1.6.5
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and version
+      placeholder: e.g. Windows 11 24H2, Fedora 43
+    validations:
+      required: true
