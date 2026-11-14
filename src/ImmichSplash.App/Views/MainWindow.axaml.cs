@@ -136,6 +136,7 @@ public partial class MainWindow : Window
         {
             vm.PickFolder = PickFolderAsync;
             vm.PickImage = PickImageAsync;
+            vm.PickFiles = PickFilesAsync;
             vm.PickSaveFile = PickSaveFileAsync;
             vm.CopyText = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;
             ImageClipboard.Clipboard = Clipboard;
@@ -167,6 +168,17 @@ public partial class MainWindow : Window
             FileTypeFilter = [new FilePickerFileType(Tr.T("Images")) { Patterns = ["*.jpg", "*.jpeg", "*.png", "*.webp", "*.gif", "*.bmp"] }],
         });
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
+    async Task<IReadOnlyList<string>> PickFilesAsync(string title, string pattern)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = true,
+            FileTypeFilter = [new FilePickerFileType(pattern) { Patterns = [pattern] }],
+        });
+        return files.Select(f => f.TryGetLocalPath()).Where(p => p is not null).Select(p => p!).ToList();
     }
 
     async Task<string?> PickSaveFileAsync(string title, string suggestedName)

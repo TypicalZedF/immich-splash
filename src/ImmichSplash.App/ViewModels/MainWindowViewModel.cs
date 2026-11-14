@@ -1,3 +1,4 @@
+using ImmichSplash.Core.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using ImmichSplash.App.Services;
 using ImmichSplash.Core.Settings;
@@ -25,6 +26,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             Content = new ShellViewModel(this);
             AskUpdatePreferences();
+            AskForFeedbackLater();
         }
     }
 
@@ -77,6 +79,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// <summary>Provided by the window: shows a native picker for an image file.</summary>
     public Func<string, Task<string?>>? PickImage { get; set; }
 
+    /// <summary>Several files of one kind (title, pattern such as "*.zip").</summary>
+    public Func<string, string, Task<IReadOnlyList<string>>>? PickFiles { get; set; }
+
     public Task<string?> PickImageAsync(string title) => PickImage?.Invoke(title) ?? Task.FromResult<string?>(null);
 
     /// <summary>Provided by the window: a native "Save as" dialog (title, suggested file name).</summary>
@@ -104,6 +109,36 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         Replace(new ShellViewModel(this));
         Navigate(page);
         AskUpdatePreferences();
+        AskForFeedbackLater();
+    }
+
+    /// <summary>A week after you start using the app (then every three months): would you like to give feedback?</summary>
+    void AskForFeedbackLater()
+    {
+        var s = AppServices.Settings.Current;
+        var now = DateTime.UtcNow;
+        if (s.FirstUsedUtc is null)
+        {
+            AppServices.Settings.Update(x => x.FirstUsedUtc = now);
+            return;
+        }
+        var due = s.NextFeedbackAskUtc ?? s.FirstUsedUtc.Value.AddDays(7);
+        if (s.NeverAskForFeedback || now < due || s.UpdatePreferencesPending)
+            return;
+        // A little after the window opens, once nothing else is asking for attention.
+        Avalonia.Threading.DispatcherTimer.RunOnce(async () =>
+        {
+            if (Content is not ShellViewModel || Overlay is not null || Dialog is not null || IsLocked)
+                return;
+            AppServices.Settings.Update(x => x.NextFeedbackAskUtc = DateTime.UtcNow.AddDays(90));
+            var choice = await ChooseAsync(Tr.T("How's Immich Splash working for you?"),
+                Tr.T("If you have a minute, tell us what you like and what could be better. It's a short form on GitHub."),
+                Tr.T("Give feedback"), Tr.T("Don't ask again"));
+            if (choice == true)
+                ShellLauncher.Open(Diagnostics.FeedbackUrl());
+            else if (choice == false)
+                AppServices.Settings.Update(x => x.NeverAskForFeedback = true);
+        }, TimeSpan.FromSeconds(20));
     }
 
     /// <summary>Once, after first-time setup: how should the app update itself?</summary>
@@ -155,6 +190,22 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         try
         {
             return await dialog.Result;
+        }
+        finally
+        {
+            if (Dialog == dialog)
+                Dialog = null;
+        }
+    }
+
+    /// <summary>Three answers: true (the main button), false (<paramref name="otherText"/>) or null (not now).</summary>
+    public async Task<bool?> ChooseAsync(string title, string message, string confirmText, string otherText, string? cancelText = null)
+    {
+        var dialog = new DialogViewModel(title, message, confirmText, cancelText ?? Tr.T("Not now"), false, otherText);
+        Dialog = dialog;
+        try
+        {
+            return await dialog.Choice;
         }
         finally
         {

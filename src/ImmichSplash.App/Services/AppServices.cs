@@ -15,6 +15,7 @@ public static class AppServices
     public static ActivityLog Activity { get; private set; } = null!;
     public static AccountService Account { get; private set; } = null!;
     public static SyncEngine Engine { get; private set; } = null!;
+    public static OfflineAlbums Offline { get; private set; } = null!;
     public static UpdateService Updates { get; private set; } = null!;
     public static ProfileService Profile { get; private set; } = null!;
     public static WallpaperService Wallpaper { get; private set; } = null!;
@@ -41,6 +42,8 @@ public static class AppServices
         Profile = new ProfileService();
         Wallpaper = new WallpaperService();
         PrivacyScan = new PrivacyScanService(Settings, Database, Account, () => Network.IsMetered, DecodeForPrivacyCheck);
+        Offline = new OfflineAlbums(Settings, Account, () => Network.IsMetered);
+        Offline.Start();
         Account.SessionChanged += () =>
         {
             if (Account.IsSignedIn)
@@ -73,6 +76,7 @@ public static class AppServices
     public static async Task ShutdownAsync()
     {
         PrivacyScan?.Dispose();
+        Offline?.Dispose();
         Updates?.Dispose();
         Network?.Dispose();
         Wallpaper?.Dispose();

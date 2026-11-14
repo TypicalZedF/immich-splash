@@ -472,21 +472,35 @@ public sealed class MapView : Control
         // Shapes may reach a little past ±180°, so include a copy either side.
         var first = (int)Math.Floor(-origin.X / size) - 1;
         var last = (int)Math.Floor((width - origin.X) / size) + 1;
+        var landFill = dark ? LandDark : LandBrush;
+        var watch = System.Diagnostics.Stopwatch.StartNew();
         for (var copy = first; copy <= last; copy++)
         {
-            using (context.PushTransform(Matrix.CreateScale(size, size) * Matrix.CreateTranslation(origin.X + copy * size, origin.Y)))
+            // The part of this copy of the world that's on screen (in 0–1 map units), with room for line widths.
+            var left = origin.X + copy * size;
+            var view = new Rect(-left / size, -origin.Y / size, width / size, height / size).Inflate(4 / size);
+            using (context.PushTransform(Matrix.CreateScale(size, size) * Matrix.CreateTranslation(left, origin.Y)))
             {
-                context.DrawGeometry(dark ? LandDark : LandBrush, coast, land);
-                if (WorldMap.Lakes is { } lakes)
-                    context.DrawGeometry(water, coast, lakes);
-                if (showRivers && WorldMap.Rivers is { } rivers)
-                    context.DrawGeometry(null, river, rivers);
-                if (showStates && WorldMap.States is { } states)
-                    context.DrawGeometry(null, state, states);
-                if (WorldMap.Borders is { } borders)
-                    context.DrawGeometry(null, border, borders);
+                Draw(land, landFill, coast);
+                Draw(WorldMap.Lakes, water, coast);
+                if (showRivers)
+                    Draw(WorldMap.Rivers, null, river);
+                if (showStates)
+                    Draw(WorldMap.States, null, state);
+                Draw(WorldMap.Borders, null, border);
+            }
+
+            void Draw(WorldMap.Layer? layer, IBrush? fill, IPen pen)
+            {
+                if (layer is null)
+                    return;
+                foreach (var (bounds, shape) in layer.Pieces)
+                    if (bounds.Intersects(view))
+                        context.DrawGeometry(fill, pen, shape);
             }
         }
+        if (watch.ElapsedMilliseconds > 60)
+            ImmichSplash.Core.Log.Info($"Map redraw took {watch.ElapsedMilliseconds} ms at zoom {_zoom:0.0}");
     }
 
     void DrawTiles(DrawingContext context, bool dark)
@@ -617,14 +631,8 @@ public sealed class MapView : Control
                 _visible.Add((c, at, ThumbRadius));
                 if (Thumbnail(id, ref wanted) is { } thumb)
                 {
-                    var rect = new Rect(at.X - ThumbRadius, at.Y - ThumbRadius, ThumbRadius * 2, ThumbRadius * 2);
-                    using (context.PushGeometryClip(new EllipseGeometry(rect)))
-                    {
-                        var side = Math.Min(thumb.Size.Width, thumb.Size.Height);
-                        var src = new Rect((thumb.Size.Width - side) / 2, (thumb.Size.Height - side) / 2, side, side);
-                        context.DrawImage(thumb, src, rect);
-                    }
-                    context.DrawEllipse(null, ThumbRing, at, ThumbRadius, ThumbRadius);
+                    var rect = new Rect(at.X - ThumbRadius - 2, at.Y - ThumbRadius - 2, ThumbRadius * 2 + 4, ThumbRadius * 2 + 4);
+                    context.DrawImage(thumb, new Rect(thumb.Size), rect);
                 }
                 else
                 {
@@ -672,12 +680,14 @@ public sealed class MapView : Control
     {
         try
         {
-            var bitmap = await load(id, ct);
-            if (bitmap is null || ct.IsCancellationRequested)
+            var loaded = await load(id, ct);
+            if (loaded is null || ct.IsCancellationRequested)
             {
-                bitmap?.Dispose();
+                loaded?.Dispose();
                 return;
             }
+            var bitmap = RoundThumbnail(loaded);
+            loaded.Dispose();
             _thumbs[id] = _thumbOrder.AddFirst((id, bitmap));
             while (_thumbOrder.Count > MaxThumbnails && _thumbOrder.Last is { } oldest)
             {
@@ -698,6 +708,30 @@ public sealed class MapView : Control
         {
             _thumbPending.Remove(id);
         }
+    }
+
+    /// <summary>The photo cut into a circle with its white ring, at screen resolution, ready to draw as is.</summary>
+    Bitmap RoundThumbnail(Bitmap photo)
+    {
+        var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+        var outer = ThumbRadius + 2;
+        var px = (int)Math.Ceiling(outer * 2 * scaling);
+        var round = new RenderTargetBitmap(new PixelSize(px, px), new Vector(96, 96));
+        using (var ctx = round.CreateDrawingContext())
+        using (ctx.PushTransform(Matrix.CreateScale(px / (outer * 2), px / (outer * 2))))
+        {
+            var middle = new Point(outer, outer);
+            var rect = new Rect(outer - ThumbRadius, outer - ThumbRadius, ThumbRadius * 2, ThumbRadius * 2);
+            using (ctx.PushGeometryClip(new EllipseGeometry(rect)))
+            using (ctx.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = BitmapInterpolationMode.HighQuality }))
+            {
+                var side = Math.Min(photo.Size.Width, photo.Size.Height);
+                var src = new Rect((photo.Size.Width - side) / 2, (photo.Size.Height - side) / 2, side, side);
+                ctx.DrawImage(photo, src, rect);
+            }
+            ctx.DrawEllipse(null, ThumbRing, middle, ThumbRadius, ThumbRadius);
+        }
+        return round;
     }
 
     void ClearThumbnails()

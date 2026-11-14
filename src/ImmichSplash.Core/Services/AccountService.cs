@@ -191,6 +191,7 @@ public sealed class AccountService(SettingsStore settings, StateDatabase db, str
         var stored = CredentialStore.Load(credentialsPath);
         if (stored is null || stored == client?.Credential)
             CredentialStore.Delete(credentialsPath);
+        LockedPinStore.Delete();
         settings.Update(s =>
         {
             s.UserId = null;

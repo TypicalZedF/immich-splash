@@ -127,6 +127,10 @@ public sealed partial class PhotosViewModel
 
     partial void OnDrillChanged(GridQuery? value)
     {
+        OnPropertyChanged(nameof(IsAlbumOffline));
+        OnPropertyChanged(nameof(OfflineTip));
+        if (value?.Album?.Id != _albumToRemember)
+            CommitRecentAlbum();
         foreach (var name in new[] { nameof(CanUseNormalActions), nameof(CanArchive), nameof(CanUnarchive), nameof(CanMoveToLocked), nameof(CanRestore) })
             OnPropertyChanged(name);
     }

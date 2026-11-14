@@ -151,7 +151,14 @@ public sealed partial class ShellViewModel : ViewModelBase, IDisposable
     /// </summary>
     public object? SidebarSelection
     {
-        get => NavEntries.Contains(SelectedNav) ? SelectedNav : null;
+        get
+        {
+            // An album opened from the recent list keeps its own highlight, not the Albums page's.
+            if (ReferenceEquals(SelectedNav, AlbumsNav) && AlbumsNav is { IsCreated: true, ViewModel: PhotosViewModel { Drill.Album: { } open } }
+                && NavEntries.OfType<NavAlbum>().FirstOrDefault(a => a.Album.Id == open.Id) is { } recentEntry)
+                return recentEntry;
+            return NavEntries.Contains(SelectedNav) ? SelectedNav : null;
+        }
         set
         {
             if (value is NavAlbum recent)
@@ -172,11 +179,15 @@ public sealed partial class ShellViewModel : ViewModelBase, IDisposable
         if (newValue is null)
             return;
         // Leaving the locked folder locks it again, like the Immich apps.
+        if (oldValue is { IsCreated: true, ViewModel: PhotosViewModel left })
+            left.CommitRecentAlbum();
         if (oldValue is { IsCreated: true, ViewModel: PhotosViewModel { IsLockedFolder: true } locked })
             _ = locked.LockAsync();
         // Coming back to a page: show what changed meanwhile (e.g. a link shared from Photos).
         if (newValue is { IsCreated: true, ViewModel: PhotosViewModel shown })
             shown.OnShownAgain();
+        if (ReferenceEquals(newValue, AlbumsNav) && newValue.ViewModel is PhotosViewModel albumsPage)
+            WatchAlbumsPage(albumsPage); // albums opened from the page itself highlight their recent entry too
         // The search box describes the results on screen; on another page it's just stale text.
         CloseSuggestions();
         if (_searchPage is not null && !ReferenceEquals(newValue.ViewModel, _searchPage))
@@ -399,6 +410,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IDisposable
             NavEntries.Insert(at++, entry);
             _ = LoadNavCoverAsync(entry);
         }
+        OnPropertyChanged(nameof(SidebarSelection));
     }
 
     async Task LoadNavCoverAsync(NavAlbum entry)
@@ -418,7 +430,27 @@ public sealed partial class ShellViewModel : ViewModelBase, IDisposable
     void OpenAlbumFromSidebar(AlbumInfo album)
     {
         Navigate(ShellPage.Albums);
-        (AlbumsNav.ViewModel as PhotosViewModel)?.OpenAlbum(album);
+        if (AlbumsNav.ViewModel is PhotosViewModel albums)
+        {
+            WatchAlbumsPage(albums);
+            albums.OpenAlbum(album);
+        }
+        OnPropertyChanged(nameof(SidebarSelection));
+    }
+
+    bool _watchingAlbumsPage;
+
+    /// <summary>Going back from the album (or opening another) moves the sidebar highlight along with it.</summary>
+    void WatchAlbumsPage(PhotosViewModel albums)
+    {
+        if (_watchingAlbumsPage)
+            return;
+        _watchingAlbumsPage = true;
+        albums.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(PhotosViewModel.Drill))
+                OnPropertyChanged(nameof(SidebarSelection));
+        };
     }
 
     void OnSettingsChanged(AppSettings settings) => Dispatcher.UIThread.Post(() =>

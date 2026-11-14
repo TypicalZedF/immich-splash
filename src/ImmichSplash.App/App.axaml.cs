@@ -52,7 +52,8 @@ public partial class App : Application
                 instance.CommandReceived += (command, argument) => Dispatcher.UIThread.Post(() => OnCommand(command, argument));
 
             // Launched at login: stay in the tray. Otherwise (or if setup isn't finished) open the window.
-            var background = desktop.Args?.Contains(Autostart.BackgroundArgument) == true;
+            var background = desktop.Args?.Contains(Autostart.BackgroundArgument) == true
+                || (Program.StartupAction is "sync" or "pause" && AppServices.Account.IsSignedIn);
             if (!background || !AppServices.Account.IsSignedIn)
                 ShowMainWindow();
 
@@ -77,6 +78,8 @@ public partial class App : Application
                     NoticeKind.BackedUp => ShellPage.Overview,
                     _ => null,
                 });
+                if (kind == NoticeKind.CameraCard)
+                    _ = OfferCardAsync();
                 // "Sign in to Immich again": straight to signing in (not behind the app lock, which shows first if on).
                 if (kind == NoticeKind.SignInNeeded && _window?.DataContext is MainWindowViewModel { IsLocked: false } main && AppServices.Account.IsRejected)
                     _ = main.SignInAgainAsync();
@@ -93,12 +96,14 @@ public partial class App : Application
 
             if (Program.StartupLink is { } link)
                 OAuthCallbacks.Deliver(link);
+            StartIntegration();
 
             if (_window is null)
                 DispatcherTimer.RunOnce(TrimIfHidden, TimeSpan.FromSeconds(15));
             desktop.ShutdownRequested += (_, _) => Log.Info("Shutdown requested by the OS");
             desktop.Exit += (_, _) =>
             {
+                StopIntegration();
                 try
                 {
                     AppServices.ShutdownAsync().Wait(TimeSpan.FromSeconds(3));
@@ -137,6 +142,12 @@ public partial class App : Application
                 break;
             case SingleInstance.Command.Quit:
                 Quit();
+                break;
+            case SingleInstance.Command.Upload when argument is not null:
+                QueueUploads(argument.Split(SingleInstance.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
+                break;
+            case SingleInstance.Command.Run when argument is not null:
+                RunAction(argument.Trim());
                 break;
         }
     }

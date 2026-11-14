@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:l="using:ImmichSplash.App.Services"
              xmlns:vm="using:ImmichSplash.App.ViewModels"
+             xmlns:api="using:ImmichSplash.Core.Api"
              xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="ImmichSplash.App.Views.Photos.ExploreSection"
              x:DataType="vm:PhotosViewModel">
@@ -95,6 +96,20 @@
                   </Border>
                 </Panel>
               </Border>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <!-- Tags (made in Immich or here): each opens its photos -->
+      <TextBlock Classes="h3" l:Tr.Text="Tags" Margin="0,16,0,0" IsVisible="{Binding HasExploreTags}" />
+      <ItemsControl ItemsSource="{Binding ExploreTags}" IsVisible="{Binding HasExploreTags}">
+        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="api:TagInfo">
+            <Button Classes="secondary" Margin="0,0,8,8" Padding="14,6" CornerRadius="999"
+                    Command="{Binding $parent[UserControl].((vm:PhotosViewModel)DataContext).OpenTagCommand}" CommandParameter="{Binding}">
+              <StackPanel Orientation="Horizontal" Spacing="6"><mi:MaterialIcon Kind="TagOutline" Width="16" Height="16" /><TextBlock Text="{Binding Value}" /></StackPanel>
             </Button>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

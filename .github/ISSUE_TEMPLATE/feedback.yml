@@ -1,0 +1,35 @@
+name: Feedback
+description: Tell us how Immich Splash is working for you
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: dropdown
+    id: overall
+    attributes:
+      label: How's it going overall?
+      options:
+        - Love it
+        - It's good
+        - It's okay
+        - Not great
+    validations:
+      required: true
+  - type: textarea
+    id: liked
+    attributes:
+      label: What do you like?
+    validations:
+      required: false
+  - type: textarea
+    id: better
+    attributes:
+      label: What could be better?
+      description: Anything confusing, slow or missing.
+    validations:
+      required: false
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+    validations:
+      required: false

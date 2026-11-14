@@ -186,6 +186,15 @@
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
                   </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding ShowConfidenceFilter}">
+                    <ComboBox ItemsSource="{Binding AlbumChoices}" SelectedItem="{Binding SelectedAlbum}" MinWidth="200" IsVisible="{Binding HasAlbumChoices}"
+                              AutomationProperties.Name="Filter by album">
+                      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PrivacyAlbumChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <ComboBox ItemsSource="{Binding SortChoices}" SelectedItem="{Binding SelectedSort}" MinWidth="170" AutomationProperties.Name="Sort suggestions">
+                      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PrivacySortChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
                   <Grid ColumnDefinitions="Auto,200,Auto,*,Auto" IsVisible="{Binding ShowConfidenceFilter}">
                     <TextBlock Classes="secondary" l:Tr.Text="How sure" VerticalAlignment="Center" Margin="0,0,10,0"
                                l:Tr.Tip="For nudity, it's the detector's own score. For text, how strong the match is: a card number that passes the card checksum or a passport's machine-readable lines count as 95%, word matches as 80%." />
@@ -230,6 +239,10 @@
                       <StackPanel Orientation="Horizontal" Spacing="6" Margin="2,0">
                         <TextBlock Classes="caption" Text="{Binding Reason}" TextWrapping="Wrap" MaxWidth="110" />
                         <TextBlock Classes="caption tertiary" Text="{Binding ConfidenceText}" />
+                      </StackPanel>
+                      <StackPanel Orientation="Horizontal" Spacing="4" Margin="2,0" IsVisible="{Binding HasAlbums}" ToolTip.Tip="{Binding AlbumText}">
+                        <mi:MaterialIcon Kind="ImageAlbum" Width="13" Height="13" Foreground="{DynamicResource AppTextTertiaryBrush}" />
+                        <TextBlock Classes="caption tertiary" Text="{Binding AlbumText}" TextTrimming="CharacterEllipsis" MaxWidth="150" />
                       </StackPanel>
                     </StackPanel>
                   </DataTemplate>

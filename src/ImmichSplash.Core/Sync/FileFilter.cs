@@ -32,8 +32,15 @@ public sealed class FileFilter
         }
     }
 
+    /// <summary>Folders never backed up: copies of albums kept on this PC (they came from Immich).</summary>
+    public static IReadOnlyList<string> SkipFolders { get; set; } = [];
+
     public bool IsMatch(string fullPath)
     {
+        foreach (var skip in SkipFolders)
+            if (fullPath.StartsWith(skip.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar,
+                    OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+                return false;
         var kind = _media.Classify(fullPath);
         if (kind == MediaKind.None)
             return false;

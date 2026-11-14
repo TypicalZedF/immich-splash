@@ -39,6 +39,8 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
         NotifyBackupsIndex = (int)s.NotifyBackups;
         NotifyFailures = s.NotifyFailures;
         NotifySignIn = s.NotifySignIn;
+        ExplorerIntegration = s.ExplorerIntegration;
+        AskAboutCameraCards = s.AskAboutCameraCards;
         _theme = s.Theme;
         LanguageOptions = [new Option<string?>(Tr.T("System ({0})", Tr.Languages.First(l => l.Code == Tr.SystemLanguage).Name), null),
             .. Tr.Languages.Select(l => new Option<string?>(l.Name, l.Code))];
@@ -457,6 +459,35 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
     }
 
     [ObservableProperty]
+    public partial bool ExplorerIntegration { get; set; }
+
+    partial void OnExplorerIntegrationChanged(bool value)
+    {
+        if (_loading)
+            return;
+        AppServices.Settings.Update(s => s.ExplorerIntegration = value);
+        App.ApplyExplorerIntegration(value);
+    }
+
+    public string ExplorerIntegrationText => OperatingSystem.IsWindows()
+        ? Tr.T("Right-click photos or folders in File Explorer (or use Send to) to upload them.")
+        : Tr.T("Adds Immich Splash to the Open with list for photos and videos.");
+
+    [ObservableProperty]
+    public partial bool AskAboutCameraCards { get; set; }
+
+    partial void OnAskAboutCameraCardsChanged(bool value)
+    {
+        if (!_loading)
+            AppServices.Settings.Update(s =>
+            {
+                s.AskAboutCameraCards = value;
+                if (value)
+                    s.IgnoredCameraCards.Clear(); // turning it back on asks about every card again
+            });
+    }
+
+    [ObservableProperty]
     public partial bool NotifySignIn { get; set; }
 
     partial void OnNotifySignInChanged(bool value)
@@ -744,6 +775,27 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
 
     [RelayCommand]
     static void OpenDataFolder() => ShellLauncher.Open(AppPaths.DataDir);
+
+    [ObservableProperty]
+    public partial string? DiagnosticsMessage { get; set; }
+
+    [RelayCommand]
+    static void ReportBug() => ShellLauncher.Open(Diagnostics.BugReportUrl());
+
+    [RelayCommand]
+    static void GiveFeedback() => ShellLauncher.Open(Diagnostics.FeedbackUrl());
+
+    /// <summary>Copies versions, setup and recent warnings (with personal details taken out) for a bug report.</summary>
+    [RelayCommand]
+    async Task CopyDiagnosticsAsync()
+    {
+        var text = await Task.Run(Diagnostics.Collect);
+        if (_shell.Main.CopyText is { } copy)
+        {
+            await copy(text);
+            DiagnosticsMessage = Tr.T("Copied. Paste it into your bug report.");
+        }
+    }
 
     // ---- About & updates ----
 

@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -61,10 +62,26 @@ public partial class PhotosView : UserControl
         this.FindControl<Button>("FitButton")!.Click += (_, _) => _map.FitToMarkers();
         this.FindControl<Button>("ShowAreaButton")!.Click += (_, _) => _vm?.ShowMapPhotos(_map.VisibleMarkers());
         _map.ClusterOpened += markers => _vm?.ShowMapPhotos(markers);
+        // The description saves when you leave its box (Enter saves too).
+        this.FindControl<TextBox>("DescriptionBox")!.LostFocus += (_, _) => _vm?.Viewer?.SaveDescriptionCommand.Execute(null);
+        DispatcherTimer? settle = null;
+        string? lastInView = null;
         _map.ViewChanged += () =>
         {
-            UpdateAreaButton();
-            _vm?.OnMapViewChanged(_map.VisibleMarkers());
+            settle ??= new DispatcherTimer(TimeSpan.FromMilliseconds(120), DispatcherPriority.Background, (_, _) =>
+            {
+                settle!.Stop();
+                var visible = _map.VisibleMarkers();
+                UpdateAreaButton(visible.Count);
+                // Same photos in view (a small nudge): keep the panel as it is instead of rebuilding it.
+                var key = visible.Count == 0 ? "" : $"{visible.Count}:{visible[0].Id}:{visible[^1].Id}";
+                if (key == lastInView)
+                    return;
+                lastInView = key;
+                _vm?.OnMapViewChanged(visible);
+            });
+            settle.Stop();
+            settle.Start();
         };
         // Single photos on the map show as round thumbnails.
         _map.ThumbnailProvider = (id, ct) => _vm?.Thumbnails is { } loader
@@ -404,12 +421,13 @@ public partial class PhotosView : UserControl
             _vm.ViewerPixels = (int)Math.Ceiling(longSide);
     }
 
-    void UpdateAreaButton()
+    void UpdateAreaButton() => UpdateAreaButton(_map.VisibleMarkers().Count);
+
+    void UpdateAreaButton(int count)
     {
         if (this.FindControl<TextBlock>("ShowAreaText") is not { } text)
             return;
-        var count = _map.VisibleMarkers().Count;
-        text.Text = count == 0 ? "No photos in this area" : $"Show {Format.Plural(count, "photo")} in this area";
+        text.Text = count == 0 ? Tr.T("No photos in this area") : Tr.T("Show {0} in this area", Format.Plural(count, Tr.T("photo"), Tr.T("photos")));
         if (this.FindControl<Button>("ShowAreaButton") is { } button)
             button.IsEnabled = count > 0;
     }

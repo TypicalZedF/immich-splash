@@ -41,6 +41,9 @@ sealed class FakeImmichServer : HttpMessageHandler
     /// <summary>Picture requests (path and query), e.g. "/api/assets/a1/thumbnail?size=preview&amp;edited=true".</summary>
     public ConcurrentQueue<string> MediaRequests { get; } = new();
 
+    /// <summary>PUT /assets/{id} bodies (date, place, description changes).</summary>
+    public ConcurrentQueue<string> AssetUpdates { get; } = new();
+
     /// <summary>The account's locked-folder PIN (null: none yet), and whether this session is unlocked.</summary>
     public string? Pin { get; set; }
     public bool Elevated { get; set; }
@@ -188,6 +191,17 @@ sealed class FakeImmichServer : HttpMessageHandler
             }
             case ("GET", _) when path.StartsWith("/api/assets/", StringComparison.Ordinal) && path.Count(c => c == '/') == 3:
                 return Json(HttpStatusCode.OK, new { id = path.Split('/')[^1], width = 4000, height = 3000, isEdited = false, exifInfo = new { exifImageWidth = 4000, exifImageHeight = 3000, orientation = ExifOrientation } });
+            case ("PUT", _) when path.StartsWith("/api/assets/", StringComparison.Ordinal) && path.Count(c => c == '/') == 3:
+            {
+                // Changing a photo's date, place or description. Like Immich v3 (zod): no nulls, and a place needs both halves.
+                using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+                var root = doc.RootElement;
+                if (root.EnumerateObject().Any(p => p.Value.ValueKind == JsonValueKind.Null)
+                    || root.TryGetProperty("latitude", out _) != root.TryGetProperty("longitude", out _))
+                    return Json(HttpStatusCode.BadRequest, new { message = "Validation failed", statusCode = 400 });
+                AssetUpdates.Enqueue(path + " " + root.GetRawText());
+                return Json(HttpStatusCode.OK, new { id = path.Split('/')[^1] });
+            }
             case ("PUT", _) when path.StartsWith("/api/assets/", StringComparison.Ordinal) && path.EndsWith("/edits", StringComparison.Ordinal):
             {
                 // Like Immich v3 (zod): at least one edit, a known action and the right parameters for it.

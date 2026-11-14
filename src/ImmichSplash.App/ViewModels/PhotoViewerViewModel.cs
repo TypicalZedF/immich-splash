@@ -165,6 +165,7 @@ public sealed partial class PhotoViewerViewModel : ViewModelBase
     {
         foreach (var name in new[] { nameof(FileName), nameof(Dimensions), nameof(Camera), nameof(Lens), nameof(Exposure), nameof(Place), nameof(Description), nameof(People), nameof(PeopleList) })
             OnPropertyChanged(name);
+        OnDetailsEdited();
     }
 
     void Show(TimelineAsset asset, Bitmap? placeholder)

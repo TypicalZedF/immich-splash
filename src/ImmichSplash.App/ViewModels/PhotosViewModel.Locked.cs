@@ -20,9 +20,56 @@ public sealed partial class PhotosViewModel
     [ObservableProperty]
     public partial string? LockedMessage { get; set; }
 
-    /// <summary>The PIN as six boxes (a filled one per typed digit; the next one to fill is the active one).</summary>
-    public IReadOnlyList<PinBox> PinBoxes => Enumerable.Range(0, PinLength)
-        .Select(i => new PinBox(i < Pin.Length, CanEnterPin && !IsUnlocking && i == Math.Min(Pin.Length, PinLength - 1))).ToList();
+    // ---- Remembering the PIN on this PC (confirmed with Windows Hello) ----
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanUnlockWithHello), nameof(ShowRememberPin))]
+    public partial bool HasRememberedPin { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RememberPinText), nameof(HelloButtonText), nameof(CanUnlockWithHello), nameof(ShowRememberPin))]
+    public partial bool HelloAvailable { get; set; }
+
+    [ObservableProperty]
+    public partial bool RememberPin { get; set; }
+
+    public bool CanUnlockWithHello => HasRememberedPin && HelloAvailable && CanEnterPin && !IsCreatingPin;
+    public bool ShowRememberPin => !HasRememberedPin && HelloAvailable && CanEnterPin && !IsCreatingPin;
+    public string RememberPinText => RememberedPin.CheckBoxText(HelloAvailable);
+    public string HelloButtonText => HelloAvailable ? WindowsHello.UnlockButtonText : Tr.T("Unlock with the remembered PIN");
+
+    async Task RefreshRememberedAsync()
+    {
+        HasRememberedPin = RememberedPin.Exists;
+        HelloAvailable = await WindowsHello.IsAvailableAsync();
+    }
+
+    [RelayCommand]
+    async Task UnlockWithHelloAsync()
+    {
+        if (Client is not { } client || IsUnlocking)
+            return;
+        IsUnlocking = true;
+        LockedMessage = null;
+        try
+        {
+            if (await RememberedPin.TryUnlockAsync(client, _main))
+            {
+                IsUnlocked = true;
+                await LoadGridAsync();
+            }
+            else
+                HasRememberedPin = RememberedPin.Exists;
+        }
+        catch (Exception ex)
+        {
+            LockedMessage = Tr.T("Couldn't unlock. {0}", NetworkErrors.Describe(ex));
+        }
+        finally
+        {
+            IsUnlocking = false;
+        }
+    }
 
     const int PinLength = 6;
 
@@ -35,7 +82,6 @@ public sealed partial class PhotosViewModel
             Pin = digits;
             return;
         }
-        OnPropertyChanged(nameof(PinBoxes));
         if (digits.Length == PinLength && CanEnterPin && !IsUnlocking)
             _ = IsCreatingPin ? CreatePinStepAsync() : UnlockAsync();
     }
@@ -99,9 +145,17 @@ public sealed partial class PhotosViewModel
         }
     }
 
-    partial void OnCanEnterPinChanged(bool value) => OnPropertyChanged(nameof(PinBoxes));
+    partial void OnCanEnterPinChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanUnlockWithHello));
+        OnPropertyChanged(nameof(ShowRememberPin));
+    }
 
-    partial void OnIsUnlockingChanged(bool value) => OnPropertyChanged(nameof(PinBoxes));
+    partial void OnIsCreatingPinChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanUnlockWithHello));
+        OnPropertyChanged(nameof(ShowRememberPin));
+    }
 
     /// <summary>Set by the shell: leaves the locked folder (the PIN prompt's Cancel).</summary>
     internal Action? LeaveRequested { get; set; }
@@ -140,6 +194,7 @@ public sealed partial class PhotosViewModel
                 return;
             }
             CanEnterPin = true;
+            await RefreshRememberedAsync();
         }
         catch (OperationCanceledException)
         {
@@ -164,6 +219,12 @@ public sealed partial class PhotosViewModel
         try
         {
             await client.UnlockSessionAsync(Pin, CancellationToken.None);
+            if (RememberPin)
+            {
+                RememberedPin.Save(Pin);
+                HasRememberedPin = true;
+                RememberPin = false;
+            }
             Pin = "";
             IsUnlocked = true;
             await LoadGridAsync();
@@ -227,7 +288,17 @@ public sealed partial class PhotosViewModel
             ShowNotice(Tr.T("Couldn't check the locked folder. {0}", NetworkErrors.Describe(ex)));
             return false;
         }
-        var panel = new PinPanelViewModel(this);
+        try
+        {
+            if (await RememberedPin.TryUnlockAsync(client, _main))
+                return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Info($"Unlocking with the remembered PIN failed: {ex.Message}");
+        }
+        var hello = await WindowsHello.IsAvailableAsync();
+        var panel = new PinPanelViewModel(this, RememberedPin.CheckBoxText(hello)) { CanRemember = hello };
         Panel = panel;
         return await panel.Result;
     }

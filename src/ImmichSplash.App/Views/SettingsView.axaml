@@ -148,6 +148,21 @@
             <TextBlock Classes="title" l:Tr.Text="When you need to sign in again" VerticalAlignment="Center" />
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding NotifySignIn}" />
           </Grid>
+          <Border Classes="divider" />
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="title" l:Tr.Text="Upload to Immich from the file manager" />
+              <TextBlock Classes="secondary" Text="{Binding ExplorerIntegrationText}" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding ExplorerIntegration}" />
+          </Grid>
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="title" l:Tr.Text="Offer to back up camera cards" />
+              <TextBlock Classes="secondary" l:Tr.Text="When a memory card or USB drive with photos is plugged in." TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding AskAboutCameraCards}" />
+          </Grid>
           <Border Classes="divider" IsVisible="{Binding AutostartSupported}" />
           <Grid Classes="row" ColumnDefinitions="*,Auto" IsVisible="{Binding AutostartSupported}">
             <StackPanel>
@@ -389,6 +404,8 @@
                   <StackPanel Orientation="Horizontal" Spacing="8"><mi:MaterialIcon Kind="LockReset" /><TextBlock l:Tr.Text="Change PIN" /></StackPanel>
                 </Button>
                 <Button Classes="ghost" Command="{Binding StartRemoveCommand}" IsVisible="{Binding CanChange}" l:Tr.Content="Remove" />
+                <Button Classes="ghost" Command="{Binding ForgetRememberedCommand}" IsVisible="{Binding IsRemembered}" l:Tr.Content="Forget on this PC"
+                        l:Tr.Tip="This PC remembers your PIN so Windows Hello can open the locked folder. Forget it to type the PIN again." />
               </StackPanel>
             </Grid>
 
@@ -619,6 +636,23 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0" VerticalAlignment="Center">
               <Button Classes="secondary" l:Tr.Content="Open logs" Command="{Binding OpenLogsCommand}" />
               <Button Classes="ghost" l:Tr.Content="Data folder" Command="{Binding OpenDataFolderCommand}" />
+            </StackPanel>
+          </Grid>
+          <Border Classes="divider" />
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="title" l:Tr.Text="Found a problem or have an idea?" />
+              <TextBlock Classes="caption" TextWrapping="Wrap"
+                         l:Tr.Text="Report it on GitHub. Copy diagnostics first: versions and recent warnings, with your server, name, email and folders taken out." />
+              <TextBlock Classes="caption" Foreground="{DynamicResource AppPrimaryBrush}" Text="{Binding DiagnosticsMessage}"
+                         IsVisible="{Binding DiagnosticsMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0" VerticalAlignment="Center">
+              <Button Classes="secondary" Command="{Binding ReportBugCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8"><mi:MaterialIcon Kind="BugOutline" /><TextBlock l:Tr.Text="Report a bug" /></StackPanel>
+              </Button>
+              <Button Classes="ghost" l:Tr.Content="Copy diagnostics" Command="{Binding CopyDiagnosticsCommand}" />
+              <Button Classes="ghost" l:Tr.Content="Give feedback" Command="{Binding GiveFeedbackCommand}" />
             </StackPanel>
           </Grid>
         </StackPanel>

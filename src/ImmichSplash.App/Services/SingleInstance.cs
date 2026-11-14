@@ -14,7 +14,14 @@ public sealed class SingleInstance : IDisposable
         Activate,
         OpenLink,
         Quit,
+        /// <summary>Files or folders to upload (from the file manager), separated by <see cref="PathSeparator"/>.</summary>
+        Upload,
+        /// <summary>A jump list task, e.g. "sync".</summary>
+        Run,
     }
+
+    /// <summary>Between paths in an Upload command (a character paths don't contain).</summary>
+    public const char PathSeparator = '|';
 
     static string Suffix => $"{AppInfo.Id}-{Environment.UserName}";
     // On Linux, .NET scopes "Local\" names to the login session, and an app started by a browser opening a

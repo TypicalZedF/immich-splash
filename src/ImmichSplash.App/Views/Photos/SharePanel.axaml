@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:l="using:ImmichSplash.App.Services"
              xmlns:vm="using:ImmichSplash.App.ViewModels"
+             xmlns:c="using:ImmichSplash.App.Controls"
              xmlns:api="using:ImmichSplash.Core.Api"
              xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="ImmichSplash.App.Views.Photos.SharePanel"
@@ -94,23 +95,90 @@
             </StackPanel>
           </DataTemplate>
           <DataTemplate DataType="vm:PinPanelViewModel">
-            <StackPanel Spacing="12">
+            <StackPanel Spacing="16">
+              <Grid ColumnDefinitions="*,Auto">
+                <mi:MaterialIcon Grid.ColumnSpan="2" Kind="LockOutline" Width="48" Height="48" Foreground="{DynamicResource AppPrimaryBrush}" HorizontalAlignment="Center" />
+                <Button Grid.Column="1" Classes="ghost icon" VerticalAlignment="Top" Command="{Binding CloseCommand}" l:Tr.Tip="Close">
+                  <mi:MaterialIcon Kind="Close" Width="20" Height="20" />
+                </Button>
+              </Grid>
+              <TextBlock HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                         l:Tr.Text="Enter your PIN code to move photos into the locked folder" />
+              <c:PinEntry Pin="{Binding Pin}" IsEntryEnabled="{Binding !IsWorking}" />
+              <CheckBox HorizontalAlignment="Center" IsChecked="{Binding Remember}" IsVisible="{Binding CanRemember}">
+                <TextBlock Text="{Binding RememberText}" TextWrapping="Wrap" MaxWidth="320" />
+              </CheckBox>
+              <TextBlock Classes="caption" Foreground="{DynamicResource AppDangerBrush}" Text="{Binding Error}" TextWrapping="Wrap" TextAlignment="Center"
+                         IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+          </DataTemplate>
+          <DataTemplate DataType="vm:TakeoutImportViewModel">
+            <StackPanel Spacing="14">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="h2" l:Tr.Text="Import from Google Photos" />
+                <Button Grid.Column="1" Classes="ghost icon" VerticalAlignment="Top" Command="{Binding CloseCommand}" IsEnabled="{Binding CanChoose}" l:Tr.Tip="Close">
+                  <mi:MaterialIcon Kind="Close" Width="20" Height="20" />
+                </Button>
+              </Grid>
+              <TextBlock Classes="secondary" Text="{Binding Summary}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="8" IsEnabled="{Binding CanChoose}">
+                <Button Classes="secondary" l:Tr.Content="Choose .zip files" Command="{Binding ChooseZipsCommand}" />
+                <Button Classes="ghost" l:Tr.Content="Choose a folder" Command="{Binding ChooseFolderCommand}" />
+              </StackPanel>
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress}" IsVisible="{Binding ShowProgress}" />
+              <TextBlock Classes="caption" Text="{Binding Status}" TextWrapping="Wrap"
+                         IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <TextBlock Classes="caption tertiary" TextWrapping="Wrap"
+                         l:Tr.Text="Dates, places, descriptions, favorites, archived photos and albums come along. Photos already in Immich are skipped, so it's safe to run again." />
+              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Classes="secondary" l:Tr.Content="Stop" Command="{Binding StopCommand}" IsVisible="{Binding IsWorking}" />
+                <Button Classes="primary" l:Tr.Content="Import" Command="{Binding StartCommand}" IsEnabled="{Binding CanStart}" />
+              </StackPanel>
+            </StackPanel>
+          </DataTemplate>
+          <DataTemplate DataType="vm:EditDetailsPanelViewModel">
+            <StackPanel Spacing="14">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Spacing="2">
-                  <TextBlock Classes="h2" l:Tr.Text="Locked folder" />
-                  <TextBlock Classes="secondary" l:Tr.Text="Enter your Immich PIN to move photos into the locked folder." TextWrapping="Wrap" />
+                  <TextBlock Classes="h2" l:Tr.Text="Edit date, place and tags" />
+                  <TextBlock Classes="secondary" Text="{Binding What}" />
                 </StackPanel>
                 <Button Grid.Column="1" Classes="ghost icon" VerticalAlignment="Top" Command="{Binding CloseCommand}" l:Tr.Tip="Close">
                   <mi:MaterialIcon Kind="Close" Width="20" Height="20" />
                 </Button>
               </Grid>
-              <TextBox Text="{Binding Pin}" PasswordChar="●" l:Tr.Watermark="PIN code" HorizontalContentAlignment="Center">
-                <TextBox.KeyBindings><KeyBinding Gesture="Enter" Command="{Binding UnlockCommand}" /></TextBox.KeyBindings>
+              <TextBlock Classes="h3" l:Tr.Text="Date and time" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <CalendarDatePicker SelectedDate="{Binding Date}" MinWidth="160" />
+                <TimePicker SelectedTime="{Binding Time}" />
+              </StackPanel>
+              <Button Classes="secondary" HorizontalAlignment="Left" l:Tr.Content="Set this date" Command="{Binding ApplyDateCommand}" IsEnabled="{Binding !IsWorking}" />
+              <TextBlock Classes="h3" l:Tr.Text="Place" />
+              <TextBox Text="{Binding PlaceSearch}" l:Tr.Watermark="Search for a city, or type latitude, longitude" />
+              <ItemsControl ItemsSource="{Binding PlaceResults}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="api:PlaceResult">
+                    <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6"
+                            Command="{Binding $parent[ItemsControl].((vm:EditDetailsPanelViewModel)DataContext).ChoosePlaceCommand}" CommandParameter="{Binding}">
+                      <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Classes="h3" l:Tr.Text="Tag" />
+              <TextBox Text="{Binding TagSearch}" l:Tr.Watermark="Add a tag">
+                <TextBox.KeyBindings><KeyBinding Gesture="Enter" Command="{Binding AddTypedTagCommand}" /></TextBox.KeyBindings>
               </TextBox>
-              <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding UnlockCommand}"
-                      IsEnabled="{Binding !IsWorking}" l:Tr.Content="Unlock" />
-              <TextBlock Classes="caption" Foreground="{DynamicResource AppDangerBrush}" Text="{Binding Error}" TextWrapping="Wrap"
-                         IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <ItemsControl ItemsSource="{Binding TagChoices}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:TagChoice">
+                    <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6"
+                            Command="{Binding $parent[ItemsControl].((vm:EditDetailsPanelViewModel)DataContext).AddTagCommand}" CommandParameter="{Binding}">
+                      <TextBlock Text="{Binding Label}" />
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
           </DataTemplate>
           <DataTemplate DataType="vm:AlbumPickerViewModel">

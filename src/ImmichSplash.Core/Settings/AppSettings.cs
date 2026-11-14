@@ -228,6 +228,23 @@ public sealed class AppSettings
     /// <summary>Set by first-time setup: ask how updates should work the next time the main window shows.</summary>
     public bool UpdatePreferencesPending { get; set; }
 
+    /// <summary>Albums kept on this PC for viewing without a connection.</summary>
+    public List<ImmichSplash.Core.Sync.OfflineAlbum> OfflineAlbums { get; set; } = [];
+
+    // Asking for feedback: a week after you start using the app, then every three months, until you say no.
+    public DateTime? FirstUsedUtc { get; set; }
+    public DateTime? NextFeedbackAskUtc { get; set; }
+    public bool NeverAskForFeedback { get; set; }
+
+    /// <summary>"Upload to Immich" in File Explorer's right-click menu and "Send to" (or the Linux "Open with" list).</summary>
+    public bool ExplorerIntegration { get; set; } = true;
+
+    /// <summary>Offer to back up a camera card or USB drive with photos when it's plugged in.</summary>
+    public bool AskAboutCameraCards { get; set; } = true;
+
+    /// <summary>Cards you said not to ask about again (<c>CameraCard.Key</c>).</summary>
+    public List<string> IgnoredCameraCards { get; set; } = [];
+
     // Desktop background: a photo from Immich, changed every so often (like a digital picture frame).
     public bool WallpaperEnabled { get; set; }
     public WallpaperSource WallpaperSource { get; set; } = WallpaperSource.Favorites;

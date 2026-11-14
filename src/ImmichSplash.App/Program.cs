@@ -17,6 +17,8 @@ public static class Program
 
     /// <summary>Set when Windows launched us to deliver an SSO callback link and no other copy was running.</summary>
     public static string? StartupLink { get; private set; }
+    public static IReadOnlyList<string> StartupUploads { get; private set; } = [];
+    public static string? StartupAction { get; private set; }
 
     [STAThread]
     public static int Main(string[] args)
@@ -46,15 +48,27 @@ public static class Program
         }
 
         var link = args.FirstOrDefault(OAuthSession.IsCallback);
+        // From the file manager ("Upload to Immich", "Send to") and the taskbar jump list.
+        var uploads = ExplorerIntegration.UploadPaths(args);
+        var actionAt = Array.IndexOf(args, App.ActionArgument);
+        var action = actionAt >= 0 && actionAt + 1 < args.Length ? args[actionAt + 1] : null;
+        void HandOver()
+        {
+            if (link is not null)
+                SingleInstance.Send(SingleInstance.Command.OpenLink, link);
+            else if (uploads.Count > 0)
+                SingleInstance.Send(SingleInstance.Command.Upload, string.Join(SingleInstance.PathSeparator, uploads));
+            else if (action is not null)
+                SingleInstance.Send(SingleInstance.Command.Run, action);
+            else if (!args.Contains(Autostart.BackgroundArgument))
+                SingleInstance.Send(SingleInstance.Command.Activate);
+        }
 
         Instance = SingleInstance.TryAcquire();
         if (Instance is null)
         {
-            // Already running: hand over the SSO link, or bring the window forward (unless this is the silent autostart launch).
-            if (link is not null)
-                SingleInstance.Send(SingleInstance.Command.OpenLink, link);
-            else if (!args.Contains(Autostart.BackgroundArgument))
-                SingleInstance.Send(SingleInstance.Command.Activate);
+            // Already running: hand over the SSO link or files, or bring the window forward (unless this is the silent autostart launch).
+            HandOver();
             return 0;
         }
         // Safety net on Linux, where the lock above has missed a running copy before (each launch in its
@@ -62,14 +76,13 @@ public static class Program
         if (!OperatingSystem.IsWindows() && SingleInstance.IsAnotherListening())
         {
             Log.Info("Another copy is already running; handing over to it");
-            if (link is not null)
-                SingleInstance.Send(SingleInstance.Command.OpenLink, link);
-            else if (!args.Contains(Autostart.BackgroundArgument))
-                SingleInstance.Send(SingleInstance.Command.Activate);
+            HandOver();
             Instance.Dispose();
             return 0;
         }
         StartupLink = link;
+        StartupUploads = uploads;
+        StartupAction = action;
 
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Error("Unhandled exception", e.ExceptionObject as Exception);
         TaskScheduler.UnobservedTaskException += (_, e) =>

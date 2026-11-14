@@ -13,15 +13,24 @@ namespace ImmichSplash.App.Services;
 /// </summary>
 public static class WorldMap
 {
-    sealed record Layers(Geometry? Land, Geometry? Lakes, Geometry? Rivers, Geometry? Borders, Geometry? States);
+    /// <summary>
+    /// A layer cut into pieces with their bounds, so a zoomed-in map only draws the pieces on screen instead of
+    /// every coastline in the world (drawing everything made each redraw slower the further you zoomed in).
+    /// </summary>
+    public sealed record Layer(IReadOnlyList<(Rect Bounds, Geometry Shape)> Pieces);
+
+    sealed record Layers(Layer? Land, Layer? Lakes, Layer? Rivers, Layer? Borders, Layer? States);
 
     static readonly Lazy<Layers> Shapes = new(Load);
 
-    public static Geometry? Land => Shapes.Value.Land;
-    public static Geometry? Lakes => Shapes.Value.Lakes;
-    public static Geometry? Rivers => Shapes.Value.Rivers;
-    public static Geometry? Borders => Shapes.Value.Borders;
-    public static Geometry? States => Shapes.Value.States;
+    public static Layer? Land => Shapes.Value.Land;
+    public static Layer? Lakes => Shapes.Value.Lakes;
+    public static Layer? Rivers => Shapes.Value.Rivers;
+    public static Layer? Borders => Shapes.Value.Borders;
+    public static Layer? States => Shapes.Value.States;
+
+    /// <summary>Pieces are about this share of the world wide (lines are also split into runs this long).</summary>
+    const int Grid = 24;
 
     public const string Attribution = "Natural Earth";
 
@@ -62,30 +71,101 @@ public static class WorldMap
         }
     }
 
-    static StreamGeometry Read(Reader reader, Func<long, long, Point> project, bool closed)
+    static Layer Read(Reader reader, Func<long, long, Point> project, bool closed)
     {
-        var geometry = new StreamGeometry();
-        using var ctx = geometry.Open();
-        ctx.SetFillRule(FillRule.EvenOdd); // lakes are holes in the land
+        var figures = new List<Point[]>();
         var count = reader.Int32();
         for (var i = 0; i < count; i++)
         {
             var points = (int)reader.VarInt();
+            var figure = new Point[points];
             long x = 0, y = 0;
             for (var p = 0; p < points; p++)
             {
                 x += reader.VarInt();
                 y += reader.VarInt();
-                var point = project(x, y);
-                if (p == 0)
-                    ctx.BeginFigure(point, isFilled: closed);
-                else
-                    ctx.LineTo(point);
+                figure[p] = project(x, y);
             }
-            if (points > 0)
-                ctx.EndFigure(closed);
+            if (points > 1)
+            {
+                if (closed)
+                    figures.Add(figure);
+                else
+                    figures.AddRange(SplitLine(figure)); // long lines (borders, rivers) in short runs
+            }
         }
-        return geometry;
+
+        // Group figures by grid cell. A closed shape that sits inside a bigger one (a hole: lakes are holes in the
+        // land) goes with the bigger one, so the even-odd fill still cuts it out.
+        var bounds = figures.Select(BoundsOf).ToArray();
+        var cellOf = new int[figures.Count];
+        var order = Enumerable.Range(0, figures.Count).OrderByDescending(i => bounds[i].Width * bounds[i].Height).ToArray();
+        var placed = new List<int>();
+        foreach (var i in order)
+        {
+            var cell = -1;
+            if (closed)
+                foreach (var outer in placed)
+                    if (bounds[outer].Contains(bounds[i]))
+                    {
+                        cell = cellOf[outer];
+                        break;
+                    }
+            if (cell < 0)
+            {
+                var c = bounds[i].Center;
+                cell = Math.Clamp((int)(c.Y * Grid), 0, Grid - 1) * Grid + Math.Clamp((int)(c.X * Grid), 0, Grid - 1);
+            }
+            cellOf[i] = cell;
+            if (closed && bounds[i].Width * bounds[i].Height > 1e-6)
+                placed.Add(i);
+        }
+        var pieces = new List<(Rect, Geometry)>();
+        foreach (var group in Enumerable.Range(0, figures.Count).GroupBy(i => cellOf[i]))
+        {
+            var geometry = new StreamGeometry();
+            Rect? all = null;
+            using (var ctx = geometry.Open())
+            {
+                ctx.SetFillRule(FillRule.EvenOdd);
+                foreach (var i in group)
+                {
+                    var figure = figures[i];
+                    ctx.BeginFigure(figure[0], isFilled: closed);
+                    for (var p = 1; p < figure.Length; p++)
+                        ctx.LineTo(figure[p]);
+                    ctx.EndFigure(closed);
+                    all = all is { } r ? r.Union(bounds[i]) : bounds[i];
+                }
+            }
+            pieces.Add((all ?? default, geometry));
+        }
+        return new Layer(pieces);
+    }
+
+    static IEnumerable<Point[]> SplitLine(Point[] line)
+    {
+        const int Run = 64;
+        if (line.Length <= Run)
+        {
+            yield return line;
+            yield break;
+        }
+        for (var start = 0; start < line.Length - 1; start += Run - 1)
+            yield return line[start..Math.Min(line.Length, start + Run)];
+    }
+
+    static Rect BoundsOf(Point[] points)
+    {
+        double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+        foreach (var p in points)
+        {
+            minX = Math.Min(minX, p.X);
+            minY = Math.Min(minY, p.Y);
+            maxX = Math.Max(maxX, p.X);
+            maxY = Math.Max(maxY, p.Y);
+        }
+        return new Rect(minX, minY, maxX - minX, maxY - minY);
     }
 
     sealed class Reader(byte[] data)

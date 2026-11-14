@@ -294,6 +294,15 @@ public sealed class ImmichClient : IDisposable
 
     public Task<List<TimelineAsset>> GetTimeBucketAsync(string bucket, CancellationToken ct) => GetTimeBucketAsync(bucket, TimelineFilter.All, ct);
 
+    /// <summary>Every asset in a timeline (e.g. one album), month by month.</summary>
+    public async Task<List<TimelineAsset>> GetAllTimelineAssetsAsync(TimelineFilter filter, CancellationToken ct)
+    {
+        var all = new List<TimelineAsset>();
+        foreach (var bucket in await GetTimeBucketsRawAsync(filter, ct))
+            all.AddRange(await GetTimeBucketAsync(bucket.TimeBucket, filter, ct));
+        return all;
+    }
+
     /// <summary>The assets in one bucket, newest first.</summary>
     public async Task<List<TimelineAsset>> GetTimeBucketAsync(string bucket, TimelineFilter filter, CancellationToken ct)
     {
@@ -327,6 +336,8 @@ public sealed class ImmichClient : IDisposable
             query += $"&userId={Uri.EscapeDataString(user)}";
         if (filter.PersonId is { } person)
             query += $"&personId={Uri.EscapeDataString(person)}";
+        if (filter.TagId is { } tag)
+            query += $"&tagId={Uri.EscapeDataString(tag)}";
         if (filter.Favorites)
             query += "&isFavorite=true";
         return query;
@@ -383,8 +394,44 @@ public sealed class ImmichClient : IDisposable
             string.IsNullOrWhiteSpace(camera) ? null : camera, e?.LensModel,
             exposure.Count > 0 ? string.Join("  ·  ", exposure) : null,
             string.IsNullOrWhiteSpace(place) ? null : place, string.IsNullOrWhiteSpace(e?.Description) ? null : e.Description,
-            a.People?.Select(p => p.Name).Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!).ToList() ?? []);
+            a.People?.Select(p => p.Name).Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!).ToList() ?? [],
+            e?.DateTimeOriginal, e?.Latitude, e?.Longitude,
+            a.Tags?.Select(t => new TagInfo(t.Id, t.Value ?? t.Name ?? "")).OrderBy(t => t.Value, StringComparer.CurrentCultureIgnoreCase).ToList() ?? []);
     }
+
+    // ---- Editing details: when and where, description ----
+
+    /// <summary>Changes one photo's date, place or description (only what's given).</summary>
+    public Task UpdateAssetAsync(string assetId, DateTimeOffset? taken, double? latitude, double? longitude, string? description, CancellationToken ct) =>
+        SendAsync(HttpMethod.Put, $"assets/{Uri.EscapeDataString(assetId)}",
+            new UpdateAssetDto(taken?.ToString("yyyy-MM-ddTHH:mm:ss.fffzzz", CultureInfo.InvariantCulture), latitude, longitude, description), ct);
+
+    /// <summary>Gives several photos the same date or place.</summary>
+    public Task UpdateAssetsAsync(IReadOnlyList<string> assetIds, DateTimeOffset? taken, double? latitude, double? longitude, CancellationToken ct) =>
+        SendAsync(HttpMethod.Put, "assets",
+            new UpdateAssetsDto(assetIds, taken?.ToString("yyyy-MM-ddTHH:mm:ss.fffzzz", CultureInfo.InvariantCulture), latitude, longitude), ct);
+
+    /// <summary>Cities matching a name (Immich's own place list).</summary>
+    public async Task<List<PlaceResult>> SearchPlacesAsync(string name, CancellationToken ct) =>
+        await SendAsync<List<PlaceResult>>(HttpMethod.Get, $"search/places?name={Uri.EscapeDataString(name)}", null, ct) ?? [];
+
+    // ---- Tags ----
+
+    public async Task<List<TagInfo>> GetTagsAsync(CancellationToken ct) =>
+        (await SendAsync<List<TagDto>>(HttpMethod.Get, "tags", null, ct) ?? [])
+            .Select(t => new TagInfo(t.Id, t.Value ?? t.Name ?? "")).OrderBy(t => t.Value, StringComparer.CurrentCultureIgnoreCase).ToList();
+
+    public async Task<TagInfo> CreateTagAsync(string name, CancellationToken ct)
+    {
+        var tag = await SendAsync<TagDto>(HttpMethod.Post, "tags", new CreateTagDto(name), ct);
+        return new TagInfo(tag.Id, tag.Value ?? tag.Name ?? name);
+    }
+
+    public Task TagAssetsAsync(string tagId, IReadOnlyList<string> assetIds, CancellationToken ct) =>
+        SendAsync(HttpMethod.Put, $"tags/{Uri.EscapeDataString(tagId)}/assets", new BulkIdsDto(assetIds), ct);
+
+    public Task UntagAssetsAsync(string tagId, IReadOnlyList<string> assetIds, CancellationToken ct) =>
+        SendAsync(HttpMethod.Delete, $"tags/{Uri.EscapeDataString(tagId)}/assets", new BulkIdsDto(assetIds), ct);
 
     /// <summary>Marks assets as favorites (or not).</summary>
     public Task SetFavoriteAsync(IReadOnlyList<string> assetIds, bool favorite, CancellationToken ct) =>

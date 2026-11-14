@@ -241,9 +241,25 @@ public sealed partial class PhotosViewModel
         LoadCovers(rest);
     }
 
+    /// <summary>
+    /// The album on screen, put in the sidebar's recent list once you leave it: adding it while you look at it
+    /// would show it twice (the page and the sidebar) and shuffle the list under the pointer.
+    /// </summary>
+    string? _albumToRemember;
+
+    internal void CommitRecentAlbum()
+    {
+        if (_albumToRemember is { } id)
+        {
+            _albumToRemember = null;
+            RememberAlbum(id);
+        }
+    }
+
     internal void OpenAlbum(AlbumInfo album)
     {
-        RememberAlbum(album.Id);
+        CommitRecentAlbum();
+        _albumToRemember = album.Id;
         OpenDrill(new GridQuery(album.AlbumName, (c, ct) => TimelineAsync(c, new TimelineFilter(AlbumId: album.Id), ct), album));
     }
 

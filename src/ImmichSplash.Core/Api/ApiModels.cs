@@ -94,7 +94,7 @@ public sealed record AlbumInfo(string Id, string AlbumName, string? AlbumThumbna
 /// folder ("locked"), or the trash. Empty = the whole library.
 /// </summary>
 public sealed record TimelineFilter(string? AlbumId = null, string? PersonId = null, bool Favorites = false,
-    string? Visibility = null, bool Trashed = false, string? UserId = null)
+    string? Visibility = null, bool Trashed = false, string? UserId = null, string? TagId = null)
 {
     public static TimelineFilter All { get; } = new();
 }
@@ -136,7 +136,28 @@ public sealed record AssetDetails(
     string? Exposure,
     string? Place,
     string? Description,
-    IReadOnlyList<string> People);
+    IReadOnlyList<string> People,
+    string? DateTimeOriginal = null,
+    double? Latitude = null,
+    double? Longitude = null,
+    IReadOnlyList<TagInfo>? Tags = null);
+
+/// <summary>An Immich tag. <see cref="Value"/> is the full name, with "/" between levels (e.g. "Trips/Japan").</summary>
+public sealed record TagInfo(string Id, string Value);
+
+internal sealed record TagDto(string Id, string? Name, string? Value);
+internal sealed record CreateTagDto(string Name);
+internal sealed record BulkIdsDto(IReadOnlyList<string> Ids);
+
+/// <summary>A place found by name (Immich's own list of cities), to set where a photo was taken.</summary>
+public sealed record PlaceResult(string Name, string? Admin1Name, string? CountryName, double Latitude, double Longitude)
+{
+    public string Label => string.Join(", ", new[] { Name, Admin1Name, CountryName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+}
+
+/// <summary>Changes to a photo's details; only what's set is changed.</summary>
+internal sealed record UpdateAssetDto(string? DateTimeOriginal = null, double? Latitude = null, double? Longitude = null, string? Description = null);
+internal sealed record UpdateAssetsDto(IReadOnlyList<string> Ids, string? DateTimeOriginal = null, double? Latitude = null, double? Longitude = null);
 
 /// <summary>A public link to photos or an album.</summary>
 public sealed record SharedLinkInfo(string Id, string Key);
@@ -240,7 +261,8 @@ public sealed record AssetSize(int Width, int Height, bool IsEdited);
 internal sealed record PersonDto(string Id, string? Name, bool IsHidden);
 internal sealed record ExifDto(
     string? Make, string? Model, string? LensModel, double? FNumber, string? ExposureTime, double? Iso, double? FocalLength,
-    string? City, string? State, string? Country, int? ExifImageWidth, int? ExifImageHeight, long? FileSizeInByte, string? Description);
+    string? City, string? State, string? Country, int? ExifImageWidth, int? ExifImageHeight, long? FileSizeInByte, string? Description,
+    string? DateTimeOriginal = null, double? Latitude = null, double? Longitude = null);
 internal sealed record AssetPersonDto(string? Name);
 /// <summary>A memory Immich made for a day: photos from that day in an earlier year, or someone's birthday.</summary>
 public sealed record Memory(string Id, string Type, int? Year, string? PersonName, IReadOnlyList<TimelineAsset> Assets)
@@ -253,7 +275,8 @@ internal sealed record MemoryDto(string Id, string Type, MemoryDataDto? Data, Li
 
 internal sealed record AssetDto(
     string Id, string? Type, string? OriginalFileName, string? FileCreatedAt, bool IsFavorite, System.Text.Json.JsonElement Duration,
-    ExifDto? ExifInfo, List<AssetPersonDto>? People, string? LivePhotoVideoId = null, AssetStackDto? Stack = null, string? Visibility = null)
+    ExifDto? ExifInfo, List<AssetPersonDto>? People, string? LivePhotoVideoId = null, AssetStackDto? Stack = null, string? Visibility = null,
+    List<TagDto>? Tags = null)
 {
     /// <summary>A live photo's video part: Immich hides it and makes no thumbnail for it.</summary>
     public bool IsHidden => Visibility == "hidden";

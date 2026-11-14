@@ -10,6 +10,8 @@ public enum NoticeKind
     Failed,
     /// <summary>The server signed the app out.</summary>
     SignInNeeded,
+    /// <summary>A camera card or USB drive with photos was plugged in.</summary>
+    CameraCard,
 }
 
 /// <summary>Something worth a desktop notification. <see cref="Kind"/> says where a click should lead.</summary>
@@ -41,10 +43,18 @@ public sealed class BackupNotifier
             BackupNotice.BigBackups => run.Uploaded >= BigRunFiles || (run.Uploaded > 0 && run.Duration >= LongRun),
             _ => false,
         };
-        return wanted
-            ? new Notice(NoticeKind.BackedUp, Loc.T("Backup complete"),
-                Loc.T("Backed up {0} to Immich.", Format.Plural(run.Uploaded, "new photo or video", "new photos and videos")))
-            : null;
+        if (!wanted)
+            return null;
+        var body = Loc.T("Backed up {0} to Immich.", Format.Plural(run.Uploaded, "new photo or video", "new photos and videos"));
+        // Which folders they came from, e.g. "VRChat: 42 · Pictures: 3" (when there's more than one, or it's named).
+        if (run.ByFolder is { Count: > 0 } folders && folders.Any(f => f.Folder.Length > 0))
+        {
+            var parts = folders.Where(f => f.Folder.Length > 0).Take(3).Select(f => $"{f.Folder}: {Format.Count(f.Count)}").ToList();
+            if (folders.Count > 3)
+                parts.Add(Loc.T("{0} more", Format.Count(folders.Count - 3)));
+            body += "\n" + string.Join(" · ", parts);
+        }
+        return new Notice(NoticeKind.BackedUp, Loc.T("Backup complete"), body);
     }
 
     /// <summary>Feed every status update in order: notices when the app gets signed out.</summary>

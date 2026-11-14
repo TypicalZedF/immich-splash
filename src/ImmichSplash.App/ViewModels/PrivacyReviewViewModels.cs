@@ -28,6 +28,7 @@ public sealed partial class PrivacyReviewViewModel : ViewModelBase, IDisposable
     public PrivacyReviewViewModel(PhotosViewModel owner)
     {
         _owner = owner;
+        SelectedSort = SortChoices[0];
         var s = AppServices.Settings.Current;
         _loading = true;
         IsEnabled = s.PrivacyScanEnabled;
@@ -151,10 +152,143 @@ public sealed partial class PrivacyReviewViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial string FilterSummary { get; set; } = "";
 
+    // ---- Album filter and sort order ----
+
+    /// <summary>"All albums", "Not in an album", then each album that holds a suggestion (with how many).</summary>
+    public ObservableCollection<PrivacyAlbumChoice> AlbumChoices { get; } = [];
+
+    [ObservableProperty]
+    public partial PrivacyAlbumChoice? SelectedAlbum { get; set; }
+
+    partial void OnSelectedAlbumChanged(PrivacyAlbumChoice? value)
+    {
+        if (!_rebuildingAlbums)
+            ApplyFilter();
+    }
+
+    public bool HasAlbumChoices => AlbumChoices.Count > 2;
+
+    public IReadOnlyList<PrivacySortChoice> SortChoices { get; } =
+    [
+        new(PrivacySort.MostSure, Tr.T("Most sure first")),
+        new(PrivacySort.Newest, Tr.T("Newest first")),
+        new(PrivacySort.Oldest, Tr.T("Oldest first")),
+        new(PrivacySort.Album, Tr.T("By album")),
+    ];
+
+    [ObservableProperty]
+    public partial PrivacySortChoice? SelectedSort { get; set; }
+
+    partial void OnSelectedSortChanged(PrivacySortChoice? value) => ApplyFilter();
+
+    /// <summary>Album names by photo, read from the server once per visit (the check itself never looks at albums).</summary>
+    Dictionary<string, List<string>>? _albumsByAsset;
+    bool _rebuildingAlbums;
+
+    async Task LoadAlbumsAndDatesAsync(IReadOnlyList<PrivacySuggestionViewModel> items)
+    {
+        if (_owner.Client is not { } client || items.Count == 0)
+            return;
+        var ct = _lifetime.Token;
+        try
+        {
+            if (_albumsByAsset is null)
+            {
+                var map = new Dictionary<string, List<string>>();
+                var albums = await client.GetAlbumsAsync(ct);
+                using var gate = new SemaphoreSlim(4);
+                await Task.WhenAll(albums.Where(a => a.AssetCount > 0).Select(async album =>
+                {
+                    await gate.WaitAsync(ct);
+                    try
+                    {
+                        var assets = await client.GetAllTimelineAssetsAsync(new TimelineFilter(AlbumId: album.Id), ct);
+                        lock (map)
+                            foreach (var asset in assets)
+                                (map.TryGetValue(asset.Id, out var names) ? names : map[asset.Id] = []).Add(album.AlbumName);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        Log.Info($"Album {album.Id} skipped for the privacy filters: {ex.Message}");
+                    }
+                    finally
+                    {
+                        gate.Release();
+                    }
+                }));
+                _albumsByAsset = map;
+            }
+            foreach (var item in _all)
+                item.SetAlbums(_albumsByAsset.TryGetValue(item.Id, out var names) ? names : []);
+            BuildAlbumChoices();
+            ApplyFilter();
+
+            // Dates, a few at a time, for the date sort.
+            using var dates = new SemaphoreSlim(6);
+            await Task.WhenAll(items.Where(i => i.Taken is null).Select(async item =>
+            {
+                await dates.WaitAsync(ct);
+                try
+                {
+                    var details = await client.GetAssetAsync(item.Id, ct);
+                    if (DateTimeOffset.TryParse(details.FileCreatedAt, System.Globalization.CultureInfo.InvariantCulture,
+                            System.Globalization.DateTimeStyles.AssumeUniversal, out var taken))
+                        item.Taken = taken;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    Log.Info($"Date unavailable for {item.Id}: {ex.Message}");
+                }
+                finally
+                {
+                    dates.Release();
+                }
+            }));
+            if (SelectedSort?.Sort is PrivacySort.Newest or PrivacySort.Oldest)
+                ApplyFilter();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Log.Info($"Albums for the privacy filters unavailable: {ex.Message}");
+        }
+    }
+
+    void BuildAlbumChoices()
+    {
+        var selected = SelectedAlbum;
+        _rebuildingAlbums = true;
+        AlbumChoices.Clear();
+        AlbumChoices.Add(new PrivacyAlbumChoice(null, Tr.T("All albums")));
+        AlbumChoices.Add(new PrivacyAlbumChoice("", Tr.T("Not in an album ({0})", _all.Count(i => i.AlbumNames.Count == 0).ToString("N0"))));
+        foreach (var group in _all.SelectMany(i => i.AlbumNames).GroupBy(n => n).OrderBy(g => g.Key, StringComparer.CurrentCultureIgnoreCase))
+            AlbumChoices.Add(new PrivacyAlbumChoice(group.Key, $"{group.Key} ({group.Count():N0})"));
+        // The chosen album stays chosen while it still has suggestions; otherwise back to all of them.
+        var stillThere = selected?.Name is not { } name
+            || (name.Length == 0 ? _all.Any(i => i.AlbumNames.Count == 0) : _all.Any(i => i.AlbumNames.Contains(name)));
+        SelectedAlbum = (stillThere ? AlbumChoices.FirstOrDefault(c => c.Name == selected?.Name) : null) ?? AlbumChoices[0];
+        _rebuildingAlbums = false;
+        OnPropertyChanged(nameof(HasAlbumChoices));
+    }
+
     internal void ApplyFilter()
     {
         var kinds = KindFilters.Where(f => f.IsOn).Aggregate(SensitiveKind.None, (all, f) => all | f.Kind);
-        var shown = _all.Where(i => (kinds == SensitiveKind.None || (i.Kinds & kinds) != 0) && i.Score * 100 >= MinConfidence - 0.001).ToList();
+        var album = SelectedAlbum?.Name;
+        IEnumerable<PrivacySuggestionViewModel> filtered = _all.Where(i => (kinds == SensitiveKind.None || (i.Kinds & kinds) != 0)
+            && i.Score * 100 >= MinConfidence - 0.001
+            && (album is null || (album.Length == 0 ? i.AlbumNames.Count == 0 : i.AlbumNames.Contains(album))));
+        filtered = (SelectedSort?.Sort ?? PrivacySort.MostSure) switch
+        {
+            PrivacySort.Newest => filtered.OrderByDescending(i => i.Taken ?? DateTimeOffset.MinValue),
+            PrivacySort.Oldest => filtered.OrderBy(i => i.Taken ?? DateTimeOffset.MaxValue),
+            PrivacySort.Album => filtered.OrderBy(i => i.AlbumNames.Count == 0 ? 1 : 0)
+                .ThenBy(i => i.AlbumNames.FirstOrDefault() ?? "", StringComparer.CurrentCultureIgnoreCase),
+            _ => filtered, // already most sure first
+        };
+        var shown = filtered.ToList();
         var visible = shown.ToHashSet();
         foreach (var hidden in Items.Where(i => i.IsSelected && !visible.Contains(i)))
             hidden.IsSelected = false; // actions only ever apply to what you can see
@@ -203,7 +337,7 @@ public sealed partial class PrivacyReviewViewModel : ViewModelBase, IDisposable
     public bool HasKindFilters => KindFilters.Count > 1;
 
     /// <summary>The confidence filter shows once there's something to filter (or it's in use).</summary>
-    public bool ShowConfidenceFilter => _all.Count > 1 || MinConfidence > 0;
+    public bool ShowConfidenceFilter => _all.Count > 1 || MinConfidence > 0 || SelectedAlbum?.Name is not null;
 
     [RelayCommand]
     void ClearFilters()
@@ -211,6 +345,9 @@ public sealed partial class PrivacyReviewViewModel : ViewModelBase, IDisposable
         foreach (var f in KindFilters)
             f.SetQuietly(false);
         MinConfidence = 0;
+        _rebuildingAlbums = true;
+        SelectedAlbum = AlbumChoices.FirstOrDefault();
+        _rebuildingAlbums = false;
         ApplyFilter();
     }
 
@@ -462,7 +599,14 @@ public sealed partial class PrivacyReviewViewModel : ViewModelBase, IDisposable
             _all.Clear();
             _all.AddRange(keep);
             BuildKindFilters();
+            if (_albumsByAsset is { } byAsset)
+            {
+                foreach (var item in _all)
+                    item.SetAlbums(byAsset.TryGetValue(item.Id, out var names) ? names : []);
+                BuildAlbumChoices();
+            }
             ApplyFilter();
+            _ = LoadAlbumsAndDatesAsync(_all.ToList());
             if (_owner.Thumbnails is { } loader)
                 foreach (var item in _all.ToList())
                     _ = item.LoadThumbnailAsync(loader, ThumbnailWidth, _lifetime.Token);
@@ -576,12 +720,17 @@ public sealed partial class PrivacyReviewViewModel : ViewModelBase, IDisposable
         }
         _shownSuggestions = _all.Count;
         BuildKindFilters();
+        if (_albumsByAsset is not null)
+            BuildAlbumChoices(); // counts change; an album with nothing left falls back to all albums
         ApplyFilter();
         AppServices.PrivacyScan.Refresh();
     }
 
-    internal void Open(PrivacySuggestionViewModel item) =>
-        _owner.OpenAsset(new TimelineAsset(item.Id, true, false, 1, null, null));
+    internal void Open(PrivacySuggestionViewModel item)
+    {
+        var shown = Items.ToList();
+        _owner.OpenAssets(shown.Select(i => new TimelineAsset(i.Id, true, false, 1, null, null)).ToList(), shown.IndexOf(item));
+    }
 
     public void Dispose()
     {
@@ -591,6 +740,13 @@ public sealed partial class PrivacyReviewViewModel : ViewModelBase, IDisposable
             item.Dispose();
     }
 }
+
+public enum PrivacySort { MostSure, Newest, Oldest, Album }
+
+public sealed record PrivacySortChoice(PrivacySort Sort, string Label);
+
+/// <summary>An album choice for the review page's filter: null = all, "" = not in an album.</summary>
+public sealed record PrivacyAlbumChoice(string? Name, string Label);
 
 /// <summary>A filter chip on the review page: one kind of private thing, and how many were found.</summary>
 public sealed partial class PrivacyKindFilter(PrivacyReviewViewModel owner, SensitiveKind kind, string label, int count, bool isOn) : ViewModelBase
@@ -632,6 +788,22 @@ public sealed partial class PrivacySuggestionViewModel(PrivacyReviewViewModel ow
     public string Id { get; } = id;
     public SensitiveKind Kinds { get; } = kinds;
     public double Score { get; } = score;
+
+    /// <summary>The albums it's in (empty when it's in none, or before they're known).</summary>
+    public IReadOnlyList<string> AlbumNames { get; private set; } = [];
+
+    public string AlbumText => AlbumNames.Count == 0 ? "" : string.Join(", ", AlbumNames);
+    public bool HasAlbums => AlbumNames.Count > 0;
+
+    internal void SetAlbums(IReadOnlyList<string> names)
+    {
+        AlbumNames = names;
+        OnPropertyChanged(nameof(AlbumText));
+        OnPropertyChanged(nameof(HasAlbums));
+    }
+
+    /// <summary>When it was taken (filled in after the page shows, for the date sort).</summary>
+    public DateTimeOffset? Taken { get; set; }
 
     /// <summary>Why it was flagged, e.g. "Payment card · Text".</summary>
     public string Reason => string.Join(" · ", Reasons(Kinds));

@@ -97,6 +97,9 @@ public sealed partial class PhotosViewModel
             : Tr.T("No duplicates found.");
 
     [RelayCommand]
+    void OpenTakeoutImport() => Panel = new TakeoutImportViewModel(this, _main);
+
+    [RelayCommand]
     void OpenDuplicates()
     {
         Duplicates?.Dispose();
@@ -161,8 +164,16 @@ public sealed partial class PhotosViewModel
     }
 
     /// <summary>Opens one photo in the viewer (e.g. from the duplicates review), without editing actions.</summary>
-    internal void OpenAsset(TimelineAsset asset) =>
-        Viewer = new PhotoViewerViewModel(this, BucketState.FromAssets([asset], "")[0], 0, asset, null, readOnly: true);
+    internal void OpenAsset(TimelineAsset asset) => OpenAssets([asset], 0);
+
+    /// <summary>Opens one of a few photos (a duplicate group, the privacy suggestions); back and next step through just those.</summary>
+    internal void OpenAssets(IReadOnlyList<TimelineAsset> assets, int index)
+    {
+        if (assets.Count == 0)
+            return;
+        index = Math.Clamp(index, 0, assets.Count - 1);
+        Viewer = new PhotoViewerViewModel(this, BucketState.FromAssets(assets, "")[0], index, assets[index], null, readOnly: true);
+    }
 
     internal Task<bool> ConfirmAsync(string title, string message, string action, bool danger) =>
         _main?.ConfirmAsync(title, message, action, danger: danger) ?? Task.FromResult(false);

@@ -159,7 +159,11 @@ public sealed partial class DuplicatesViewModel : ViewModelBase, IDisposable
         Changed();
     }
 
-    internal void Open(DuplicateItemViewModel item) => _owner.OpenAsset(item.Asset);
+    internal void Open(DuplicateGroupViewModel group, DuplicateItemViewModel item)
+    {
+        var items = group.Items.ToList();
+        _owner.OpenAssets(items.Select(i => i.Asset).ToList(), items.IndexOf(item));
+    }
 
     public void Dispose()
     {
@@ -207,7 +211,7 @@ public sealed partial class DuplicateGroupViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     Task NotDuplicates() => _owner.ResolveAsync(this, notDuplicates: true);
 
-    internal void Open(DuplicateItemViewModel item) => _owner.Open(item);
+    internal void Open(DuplicateItemViewModel item) => _owner.Open(this, item);
 
     public void Dispose()
     {

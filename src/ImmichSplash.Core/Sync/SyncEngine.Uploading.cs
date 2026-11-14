@@ -20,6 +20,8 @@ public sealed partial class SyncEngine
         var started = Stopwatch.StartNew();
 
         var uploaded = 0;
+
+        var byFolder = new Dictionary<string, int>(StringComparer.Ordinal);
         var alreadyThere = 0;
         SetState(SyncState.Uploading, Loc.T("Checking files…"));
         _progressTimer.Change(400, 400);
@@ -108,7 +110,12 @@ public sealed partial class SyncEngine
                     async (record, token) =>
                     {
                         if (await UploadOneAsync(client, record, token))
+                        {
                             Interlocked.Increment(ref uploaded);
+                            var folder = FolderNameOf(settings, record.Path);
+                            lock (byFolder)
+                                byFolder[folder] = byFolder.GetValueOrDefault(folder) + 1;
+                        }
                     });
 
                 await SyncAlbumsDuringUploadAsync(client, ct);
@@ -126,7 +133,10 @@ public sealed partial class SyncEngine
             }
             try
             {
-                RunFinished?.Invoke(new RunSummary(uploaded, alreadyThere, _runFailed, started.Elapsed));
+                List<(string, int)> perFolder;
+                lock (byFolder)
+                    perFolder = byFolder.OrderByDescending(kv => kv.Value).Select(kv => (kv.Key, kv.Value)).ToList();
+                RunFinished?.Invoke(new RunSummary(uploaded, alreadyThere, _runFailed, started.Elapsed, perFolder));
             }
             catch (Exception ex)
             {
@@ -323,4 +333,14 @@ public sealed partial class SyncEngine
     sealed class WaitForNetworkException : Exception;
 
     bool _deferredVideosNoted;
+
+    /// <summary>The backed-up folder a file belongs to, by name (the deepest folder that contains it).</summary>
+    static string FolderNameOf(AppSettings settings, string path)
+    {
+        var folder = settings.Folders
+            .Where(f => path.StartsWith(f.Path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(f => f.Path.Length)
+            .FirstOrDefault();
+        return folder is null ? "" : Path.GetFileName(folder.Path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)) is { Length: > 0 } name ? name : folder.Path;
+    }
 }

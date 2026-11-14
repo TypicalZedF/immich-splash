@@ -3,40 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:l="using:ImmichSplash.App.Services"
              xmlns:vm="using:ImmichSplash.App.ViewModels"
+             xmlns:c="using:ImmichSplash.App.Controls"
              xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="ImmichSplash.App.Views.Photos.LockedPinSection"
              x:DataType="vm:PhotosViewModel">
-  <UserControl.Styles>
-    <Style Selector="Border.pinBox">
-      <Setter Property="Width" Value="40" />
-      <Setter Property="Height" Value="48" />
-      <Setter Property="CornerRadius" Value="12" />
-      <Setter Property="BorderThickness" Value="2" />
-      <Setter Property="Background" Value="{DynamicResource AppInputBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource AppCardBorderBrush}" />
-    </Style>
-    <!-- While typing: the next box is outlined and has a blinking caret (only while the PIN field has focus). -->
-    <Style Selector="ItemsControl.typing Border.pinBox.active">
-      <Setter Property="BorderBrush" Value="{DynamicResource AppPrimaryBrush}" />
-    </Style>
-    <Style Selector="Rectangle.caret">
-      <Setter Property="Width" Value="2" />
-      <Setter Property="Height" Value="22" />
-      <Setter Property="Fill" Value="{DynamicResource AppPrimaryBrush}" />
-      <Setter Property="IsVisible" Value="False" />
-    </Style>
-    <Style Selector="ItemsControl.typing Border.pinBox.active Rectangle.caret">
-      <Setter Property="IsVisible" Value="True" />
-      <Style.Animations>
-        <Animation Duration="0:0:1" IterationCount="INFINITE">
-          <KeyFrame Cue="0%"><Setter Property="Opacity" Value="1" /></KeyFrame>
-          <KeyFrame Cue="49%"><Setter Property="Opacity" Value="1" /></KeyFrame>
-          <KeyFrame Cue="50%"><Setter Property="Opacity" Value="0" /></KeyFrame>
-          <KeyFrame Cue="100%"><Setter Property="Opacity" Value="0" /></KeyFrame>
-        </Animation>
-      </Style.Animations>
-    </Style>
-  </UserControl.Styles>
   <Border Classes="card" Width="520" Padding="32,34,32,30" CornerRadius="24" HorizontalAlignment="Center" VerticalAlignment="Center"
           IsVisible="{Binding ShowLockedPrompt}">
     <StackPanel Spacing="22">
@@ -47,26 +17,15 @@
       <TextBlock Classes="secondary" TextWrapping="Wrap" TextAlignment="Center" IsVisible="{Binding !CanEnterPin}"
                  l:Tr.Text="Photos here are hidden from your timeline, albums and search." />
 
-      <!-- Six boxes to look at; an invisible text box on top takes the typing. -->
-      <Panel HorizontalAlignment="Center" IsVisible="{Binding CanEnterPin}">
-        <ItemsControl Name="PinBoxes" ItemsSource="{Binding PinBoxes}" IsHitTestVisible="False">
-          <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="10" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:PinBox">
-              <Border Classes="pinBox" Classes.active="{Binding Active}">
-                <Panel>
-                  <Ellipse Width="10" Height="10" Fill="{DynamicResource AppTextBrush}" IsVisible="{Binding Filled}" />
-                  <Rectangle Classes="caret" />
-                </Panel>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-        <TextBox Name="PinInput" Text="{Binding Pin}" MaxLength="6" PasswordChar="●" Opacity="0" Background="Transparent" BorderThickness="0"
-                 l:Tr.Watermark="PIN code" AutomationProperties.Name="PIN code">
-          <TextBox.KeyBindings><KeyBinding Gesture="Enter" Command="{Binding UnlockCommand}" /></TextBox.KeyBindings>
-        </TextBox>
-      </Panel>
+      <c:PinEntry Name="PinEntry" Pin="{Binding Pin}" IsEntryEnabled="{Binding !IsUnlocking}" IsVisible="{Binding CanEnterPin}" />
+
+      <!-- Remembered on this PC: Windows Hello instead of typing. -->
+      <Button Classes="ghost" HorizontalAlignment="Center" Command="{Binding UnlockWithHelloCommand}" IsVisible="{Binding CanUnlockWithHello}">
+        <StackPanel Orientation="Horizontal" Spacing="8"><mi:MaterialIcon Kind="Fingerprint" /><TextBlock Text="{Binding HelloButtonText}" /></StackPanel>
+      </Button>
+      <CheckBox HorizontalAlignment="Center" IsChecked="{Binding RememberPin}" IsVisible="{Binding ShowRememberPin}">
+        <TextBlock Text="{Binding RememberPinText}" TextWrapping="Wrap" MaxWidth="400" />
+      </CheckBox>
 
       <TextBlock Classes="caption" Foreground="{DynamicResource AppDangerBrush}" Text="{Binding LockedMessage}" TextWrapping="Wrap"
                  TextAlignment="Center" IsVisible="{Binding LockedMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />

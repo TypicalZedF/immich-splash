@@ -527,8 +527,23 @@ public sealed partial class PartnerViewModel(PhotosViewModel owner, PartnerInfo 
 }
 
 /// <summary>Asks for the account's PIN to unlock the locked folder (e.g. before moving photos into it).</summary>
-public sealed partial class PinPanelViewModel(PhotosViewModel owner) : ViewModelBase
+public sealed partial class PinPanelViewModel(PhotosViewModel owner, string rememberText) : ViewModelBase
 {
+    public string RememberText { get; } = rememberText;
+
+    /// <summary>Only offered when Windows Hello (or the Linux login) can guard the remembered PIN.</summary>
+    public bool CanRemember { get; init; }
+
+    /// <summary>Keep the PIN on this PC (behind Windows Hello) so this prompt doesn't come back.</summary>
+    [ObservableProperty]
+    public partial bool Remember { get; set; }
+
+    partial void OnPinChanged(string value)
+    {
+        if (value.Length == Controls.PinEntry.Length && !IsWorking)
+            _ = UnlockAsync();
+    }
+
     readonly TaskCompletionSource<bool> _result = new();
 
     public Task<bool> Result => _result.Task;
@@ -552,12 +567,15 @@ public sealed partial class PinPanelViewModel(PhotosViewModel owner) : ViewModel
         try
         {
             await client.UnlockSessionAsync(Pin, CancellationToken.None);
+            if (Remember)
+                RememberedPin.Save(Pin);
             owner.ClosePanel(this);
             _result.TrySetResult(true);
         }
         catch (ImmichApiException ex) when ((int)ex.StatusCode is >= 400 and < 500)
         {
             Error = Tr.T("That PIN isn't right.");
+            Pin = "";
         }
         catch (Exception ex)
         {

@@ -103,7 +103,7 @@ public sealed partial class PhotosViewModel : ViewModelBase, IDisposable
 
     Task LoadPageAsync() => Page switch
     {
-        LibraryPage.Explore => Task.WhenAll(LoadPeopleAsync(), LoadPlacesAsync()),
+        LibraryPage.Explore => Task.WhenAll(LoadPeopleAsync(), LoadPlacesAsync(), LoadTagsAsync()),
         LibraryPage.Map => LoadMarkersAsync(),
         LibraryPage.Sharing => LoadSharingAsync(),
         LibraryPage.Albums => LoadAlbumsAsync(),
@@ -685,6 +685,8 @@ public sealed partial class PhotosViewModel : ViewModelBase, IDisposable
         if (next >= 0 && next < assets.Count)
             return (bucket, next, assets[next]);
 
+        if (bucket.Position >= _buckets.Count || !ReferenceEquals(_buckets[bucket.Position], bucket))
+            return null; // a stand-alone set of photos (duplicates, suggestions): the ends are the ends
         var neighbour = bucket.Position + delta;
         while (neighbour >= 0 && neighbour < _buckets.Count)
         {
@@ -702,6 +704,7 @@ public sealed partial class PhotosViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        CommitRecentAlbum();
         _lifetime.Cancel();
         ReleaseRows();
         foreach (var card in Albums.Cast<LibraryCardViewModel>().Concat(People).Concat(Places))

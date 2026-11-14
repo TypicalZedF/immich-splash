@@ -95,6 +95,18 @@ public sealed partial class LockedPinSettingsViewModel : ViewModelBase
         }
     }
 
+    /// <summary>The PIN is remembered on this PC (ticked when entering it).</summary>
+    [ObservableProperty]
+    public partial bool IsRemembered { get; set; } = RememberedPin.Exists;
+
+    [RelayCommand]
+    void ForgetRemembered()
+    {
+        RememberedPin.Forget();
+        IsRemembered = false;
+        Message = Tr.T("This PC no longer remembers your PIN.");
+    }
+
     [RelayCommand]
     void StartCreate() => Start(Mode.Create);
 
@@ -152,10 +164,14 @@ public sealed partial class LockedPinSettingsViewModel : ViewModelBase
                     break;
                 case Mode.Change:
                     await client.ChangePinAsync(CurrentPin, NewPin, CancellationToken.None);
+                    if (RememberedPin.Exists)
+                        RememberedPin.Save(NewPin);
                     Message = Tr.T("PIN changed.");
                     break;
                 case Mode.Remove:
                     await client.RemovePinAsync(CurrentPin, CancellationToken.None);
+                    RememberedPin.Forget();
+                    IsRemembered = false;
                     Message = Tr.T("PIN removed.");
                     HasPin = false;
                     break;

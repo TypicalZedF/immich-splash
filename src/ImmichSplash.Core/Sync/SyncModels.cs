@@ -53,7 +53,9 @@ public sealed record ActiveUpload(string Path, long Size, long Sent)
 
 /// <summary>Immutable snapshot of what the sync engine is doing, published to the UI and tray.</summary>
 /// <summary>What one upload run did: files sent, files the server already had, files that failed.</summary>
-public sealed record RunSummary(int Uploaded, int AlreadyThere, int Failed, TimeSpan Duration);
+/// <param name="ByFolder">How many were uploaded from each backed-up folder (by folder name), most first.</param>
+public sealed record RunSummary(int Uploaded, int AlreadyThere, int Failed, TimeSpan Duration,
+    IReadOnlyList<(string Folder, int Count)>? ByFolder = null);
 
 public sealed record SyncStatus
 {

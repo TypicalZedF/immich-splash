@@ -23,6 +23,9 @@ public static class Tr
         new("de", "Deutsch"),
         new("es", "Español"),
         new("fr", "Français"),
+        new("it", "Italiano"),
+        new("nl", "Nederlands"),
+        new("pl", "Polski"),
         new("pt", "Português"),
     ];
 
