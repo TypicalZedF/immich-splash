@@ -61,6 +61,16 @@
       <Border Classes="card" Padding="8,14,8,8" CornerRadius="20">
         <StackPanel Spacing="2">
           <TextBlock Classes="caption" l:Tr.Text="This PC" Margin="14,0,0,6" />
+          <Button Classes="utility" Command="{Binding OpenDriveBackupCommand}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <mi:MaterialIcon Kind="UsbFlashDriveOutline" Classes="utilityIcon" />
+              <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
+                <TextBlock l:Tr.Text="Back up a USB drive or memory card" FontWeight="Medium" />
+                <TextBlock Classes="caption" l:Tr.Text="Upload its photos and videos once. Anything already in Immich is skipped." TextWrapping="Wrap" />
+              </StackPanel>
+              <mi:MaterialIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="{DynamicResource AppTextTertiaryBrush}" />
+            </Grid>
+          </Button>
           <Button Classes="utility" Command="{Binding OpenTakeoutImportCommand}">
             <Grid ColumnDefinitions="Auto,*,Auto">
               <mi:MaterialIcon Kind="Import" Classes="utilityIcon" />

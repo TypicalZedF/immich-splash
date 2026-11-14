@@ -1145,5 +1145,14 @@
  "{0} more": "altri {0}",
  "{0} of {1} · {2} new, {3} already in Immich{4}": "{0} di {1} · {2} nuove, {3} già in Immich{4}",
  "“{0}” is kept on this PC": "«{0}» è tenuto su questo PC",
- "“{0}” is no longer kept on this PC": "«{0}» non è più tenuto su questo PC"
+ "“{0}” is no longer kept on this PC": "«{0}» non è più tenuto su questo PC",
+ "Plug in a USB drive or memory card first.": "Collega prima una chiavetta USB o una scheda di memoria.",
+ "Back up a USB drive or memory card": "Salva una chiavetta USB o una scheda di memoria",
+ "Upload its photos and videos once. Anything already in Immich is skipped.": "Carica foto e video una volta. Ciò che è già in Immich viene saltato.",
+ "This folder is on a removable drive": "Questa cartella è su un'unità rimovibile",
+ "It's only backed up while the drive is plugged in; when it isn't, the folder shows as not found (nothing is removed from Immich). To copy what's on it just once, upload it instead.": "Viene salvata solo quando l'unità è collegata; altrimenti la cartella risulta non trovata (nulla viene rimosso da Immich). Per copiarne il contenuto una sola volta, caricala invece.",
+ "It's only backed up while the drive is plugged in; when it isn't, the folder shows as not found (nothing is removed from Immich).": "Viene salvata solo quando l'unità è collegata; altrimenti la cartella risulta non trovata (nulla viene rimosso da Immich).",
+ "Upload once": "Carica una volta",
+ "Keep backing it up": "Continua a salvarla",
+ "Open Google Takeout": "Apri Google Takeout"
 }

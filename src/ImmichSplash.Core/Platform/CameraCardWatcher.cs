@@ -45,8 +45,38 @@ public sealed class CameraCardWatcher : IDisposable
         }
     }
 
-    /// <summary>Removable drives that have a DCIM folder.</summary>
-    public static IEnumerable<CameraCard> Removable()
+    /// <summary>Removable drives that have a DCIM folder (cameras and phones write one).</summary>
+    public static IEnumerable<CameraCard> Removable() => Drives(requireDcim: true);
+
+    /// <summary>Every removable drive plugged in; its photos folder is DCIM when there is one, else the whole drive.</summary>
+    public static IEnumerable<CameraCard> AllRemovable() => Drives(requireDcim: false);
+
+    /// <summary>Whether a path is on a removable drive (a USB stick or memory card).</summary>
+    public static bool IsOnRemovableDrive(string path)
+    {
+        try
+        {
+            var full = Path.GetFullPath(path);
+            return DriveInfo.GetDrives()
+                .Where(d => full.StartsWith(d.RootDirectory.FullName, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+                .OrderByDescending(d => d.RootDirectory.FullName.Length)
+                .FirstOrDefault() is { } drive && IsRemovable(drive);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    static bool IsRemovable(DriveInfo drive)
+    {
+        var root = drive.RootDirectory.FullName;
+        return OperatingSystem.IsWindows()
+            ? drive.DriveType == DriveType.Removable
+            : root.StartsWith("/media/", StringComparison.Ordinal) || root.StartsWith("/run/media/", StringComparison.Ordinal);
+    }
+
+    static IEnumerable<CameraCard> Drives(bool requireDcim)
     {
         foreach (var drive in DriveInfo.GetDrives())
         {
@@ -57,10 +87,7 @@ public sealed class CameraCardWatcher : IDisposable
                 if (!drive.IsReady)
                     continue;
                 root = drive.RootDirectory.FullName;
-                var removable = OperatingSystem.IsWindows()
-                    ? drive.DriveType == DriveType.Removable
-                    : root.StartsWith("/media/", StringComparison.Ordinal) || root.StartsWith("/run/media/", StringComparison.Ordinal);
-                if (!removable)
+                if (!IsRemovable(drive))
                     continue;
                 dcim = Directory.EnumerateDirectories(root).FirstOrDefault(d => string.Equals(Path.GetFileName(d), "DCIM", StringComparison.OrdinalIgnoreCase));
             }
@@ -68,13 +95,13 @@ public sealed class CameraCardWatcher : IDisposable
             {
                 continue;
             }
-            if (dcim is null)
+            if (dcim is null && requireDcim)
                 continue;
             var label = "";
             try { label = drive.VolumeLabel; } catch { /* some file systems have none */ }
             if (string.IsNullOrWhiteSpace(label))
                 label = OperatingSystem.IsWindows() ? root.TrimEnd('\\') : Path.GetFileName(root.TrimEnd('/'));
-            yield return new CameraCard(root, label, dcim);
+            yield return new CameraCard(root, label, dcim ?? root);
         }
     }
 

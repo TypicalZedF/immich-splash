@@ -126,6 +126,10 @@ public sealed partial class TakeoutImportViewModel(PhotosViewModel owner, MainWi
     [RelayCommand]
     void Stop() => _cts?.Cancel();
 
+    /// <summary>Google Takeout with only Google Photos picked.</summary>
+    [RelayCommand]
+    static void OpenTakeout() => Core.Platform.ShellLauncher.Open("https://takeout.google.com/settings/takeout/custom/photos");
+
     [RelayCommand]
     void Close()
     {

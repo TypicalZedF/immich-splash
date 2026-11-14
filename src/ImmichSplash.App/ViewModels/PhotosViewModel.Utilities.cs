@@ -96,6 +96,25 @@ public sealed partial class PhotosViewModel
             ? Format.Plural(groups, Tr.T("group of look-alike photos to review"), Tr.T("groups of look-alike photos to review"))
             : Tr.T("No duplicates found.");
 
+    /// <summary>Back up a USB drive or memory card once (also for cards you said "not now" or "not this card" to).</summary>
+    [RelayCommand]
+    void OpenDriveBackup()
+    {
+        var drives = Core.Platform.CameraCardWatcher.AllRemovable().ToList();
+        if (drives.Count == 0)
+            ShowNotice(Tr.T("Plug in a USB drive or memory card first."));
+        else if (drives.Count == 1)
+            BackUpDrive(drives[0]);
+        else
+            Panel = new DrivePickerViewModel(this, drives);
+    }
+
+    internal void BackUpDrive(Core.Platform.CameraCard drive)
+    {
+        Panel = null;
+        _main?.OfferUpload([drive.PhotosFolder]);
+    }
+
     [RelayCommand]
     void OpenTakeoutImport() => Panel = new TakeoutImportViewModel(this, _main);
 

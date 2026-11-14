@@ -1145,5 +1145,14 @@
  "{0} more": "nog {0}",
  "{0} of {1} · {2} new, {3} already in Immich{4}": "{0} van {1} · {2} nieuw, {3} al in Immich{4}",
  "“{0}” is kept on this PC": "„{0}” wordt op deze pc bewaard",
- "“{0}” is no longer kept on this PC": "„{0}” wordt niet meer op deze pc bewaard"
+ "“{0}” is no longer kept on this PC": "„{0}” wordt niet meer op deze pc bewaard",
+ "Plug in a USB drive or memory card first.": "Sluit eerst een USB-stick of geheugenkaart aan.",
+ "Back up a USB drive or memory card": "Back-up van een USB-stick of geheugenkaart",
+ "Upload its photos and videos once. Anything already in Immich is skipped.": "Upload de foto's en video's één keer. Wat al in Immich staat, wordt overgeslagen.",
+ "This folder is on a removable drive": "Deze map staat op een verwisselbare schijf",
+ "It's only backed up while the drive is plugged in; when it isn't, the folder shows as not found (nothing is removed from Immich). To copy what's on it just once, upload it instead.": "Er wordt alleen een back-up gemaakt als de schijf is aangesloten; anders staat de map als niet gevonden (er wordt niets uit Immich verwijderd). Wil je de inhoud maar één keer kopiëren, upload hem dan.",
+ "It's only backed up while the drive is plugged in; when it isn't, the folder shows as not found (nothing is removed from Immich).": "Er wordt alleen een back-up gemaakt als de schijf is aangesloten; anders staat de map als niet gevonden (er wordt niets uit Immich verwijderd).",
+ "Upload once": "Eén keer uploaden",
+ "Keep backing it up": "Blijven back-uppen",
+ "Open Google Takeout": "Google Takeout openen"
 }

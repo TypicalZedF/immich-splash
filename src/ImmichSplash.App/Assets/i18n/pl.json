@@ -1145,5 +1145,14 @@
  "{0} more": "jeszcze {0}",
  "{0} of {1} · {2} new, {3} already in Immich{4}": "{0} z {1} · {2} nowych, {3} już w Immich{4}",
  "“{0}” is kept on this PC": "„{0}” jest zachowany na tym komputerze",
- "“{0}” is no longer kept on this PC": "„{0}” nie jest już zachowany na tym komputerze"
+ "“{0}” is no longer kept on this PC": "„{0}” nie jest już zachowany na tym komputerze",
+ "Plug in a USB drive or memory card first.": "Najpierw podłącz pendrive lub kartę pamięci.",
+ "Back up a USB drive or memory card": "Skopiuj pendrive lub kartę pamięci",
+ "Upload its photos and videos once. Anything already in Immich is skipped.": "Wysyła zdjęcia i filmy jednorazowo. To, co już jest w Immich, zostanie pominięte.",
+ "This folder is on a removable drive": "Ten folder jest na dysku wymiennym",
+ "It's only backed up while the drive is plugged in; when it isn't, the folder shows as not found (nothing is removed from Immich). To copy what's on it just once, upload it instead.": "Kopia działa tylko, gdy dysk jest podłączony; w przeciwnym razie folder pokazuje się jako nieznaleziony (nic nie jest usuwane z Immich). Aby skopiować zawartość tylko raz, wyślij ją zamiast tego.",
+ "It's only backed up while the drive is plugged in; when it isn't, the folder shows as not found (nothing is removed from Immich).": "Kopia działa tylko, gdy dysk jest podłączony; w przeciwnym razie folder pokazuje się jako nieznaleziony (nic nie jest usuwane z Immich).",
+ "Upload once": "Wyślij raz",
+ "Keep backing it up": "Kopiuj na bieżąco",
+ "Open Google Takeout": "Otwórz Google Takeout"
 }

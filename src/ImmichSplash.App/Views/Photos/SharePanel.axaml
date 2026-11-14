@@ -112,6 +112,32 @@
                          IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             </StackPanel>
           </DataTemplate>
+          <DataTemplate DataType="vm:DrivePickerViewModel">
+            <StackPanel Spacing="12">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="h2" l:Tr.Text="Back up a USB drive or memory card" />
+                <Button Grid.Column="1" Classes="ghost icon" VerticalAlignment="Top" Command="{Binding CloseCommand}" l:Tr.Tip="Close">
+                  <mi:MaterialIcon Kind="Close" Width="20" Height="20" />
+                </Button>
+              </Grid>
+              <ItemsControl ItemsSource="{Binding Drives}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DriveChoice">
+                    <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" CornerRadius="12"
+                            Command="{Binding $parent[ItemsControl].((vm:DrivePickerViewModel)DataContext).ChooseCommand}" CommandParameter="{Binding}">
+                      <StackPanel Orientation="Horizontal" Spacing="12">
+                        <mi:MaterialIcon Kind="UsbFlashDriveOutline" Width="22" Height="22" />
+                        <StackPanel>
+                          <TextBlock Text="{Binding Label}" FontWeight="Medium" />
+                          <TextBlock Classes="caption" Text="{Binding Detail}" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DataTemplate>
           <DataTemplate DataType="vm:TakeoutImportViewModel">
             <StackPanel Spacing="14">
               <Grid ColumnDefinitions="*,Auto">
@@ -121,6 +147,9 @@
                 </Button>
               </Grid>
               <TextBlock Classes="secondary" Text="{Binding Summary}" TextWrapping="Wrap" />
+              <Button Classes="link" HorizontalAlignment="Left" Command="{Binding OpenTakeoutCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6"><mi:MaterialIcon Kind="OpenInNew" Width="16" Height="16" /><TextBlock l:Tr.Text="Open Google Takeout" /></StackPanel>
+              </Button>
               <StackPanel Orientation="Horizontal" Spacing="8" IsEnabled="{Binding CanChoose}">
                 <Button Classes="secondary" l:Tr.Content="Choose .zip files" Command="{Binding ChooseZipsCommand}" />
                 <Button Classes="ghost" l:Tr.Content="Choose a folder" Command="{Binding ChooseFolderCommand}" />

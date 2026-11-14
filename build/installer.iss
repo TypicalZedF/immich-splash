@@ -99,7 +99,8 @@ Type: filesandordirs; Name: "{app}"
 ; The same app ID the app uses for its notifications (DesktopNotifications.WindowsAppId): Windows only shows a
 ; desktop app's notifications reliably when its Start menu shortcut carries it.
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"; AppUserModelID: "TypicalZedF.ImmichSplash"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
+; Updates leave an existing desktop shortcut alone: recreating it moves it to a new spot on the desktop.
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon; Check: not DesktopShortcutExists
 
 [Run]
 ; Refresh this user's icon cache (Windows otherwise keeps showing the old logo on shortcuts).
@@ -114,6 +115,11 @@ Filename: "{app}\{#AppExe}"; Parameters: "--background"; Flags: nowait runasorig
 Filename: "{app}\{#AppExe}"; Parameters: "--uninstall"; Flags: runhidden waituntilterminated; RunOnceId: "ImmichSplashCleanup"
 
 [Code]
+function DesktopShortcutExists: Boolean;
+begin
+  Result := FileExists(ExpandConstant('{autodesktop}\{#AppName}.lnk'));
+end;
+
 function IsRelaunch: Boolean;
 begin
   Result := ExpandConstant('{param:relaunch|0}') = '1';

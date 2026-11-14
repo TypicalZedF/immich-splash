@@ -48,6 +48,20 @@ public sealed partial class FoldersViewModel : ViewModelBase, IDisposable
             AddError = error;
             return;
         }
+        if (Core.Platform.CameraCardWatcher.IsOnRemovableDrive(path))
+        {
+            // A folder on a USB drive or card only backs up while it's plugged in. Often a one-time upload is what's wanted.
+            var choice = await _shell.Main.ChooseAsync(Tr.T("This folder is on a removable drive"),
+                Tr.T("It's only backed up while the drive is plugged in; when it isn't, the folder shows as not found (nothing is removed from Immich). To copy what's on it just once, upload it instead."),
+                Tr.T("Upload once"), Tr.T("Keep backing it up"), Tr.T("Cancel"));
+            if (choice == true)
+            {
+                _shell.Main.OfferUpload([path]);
+                return;
+            }
+            if (choice is null)
+                return;
+        }
 
         var folder = new SyncFolder { Path = FolderRules.Normalize(path) };
         AppServices.Settings.Update(s => s.Folders.Add(folder));

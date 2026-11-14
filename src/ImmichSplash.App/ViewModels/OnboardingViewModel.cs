@@ -403,6 +403,11 @@ public sealed partial class OnboardingViewModel : ViewModelBase, IDisposable
             FolderError = error;
             return;
         }
+        if (Core.Platform.CameraCardWatcher.IsOnRemovableDrive(path)
+            && !await _main.ConfirmAsync(Tr.T("This folder is on a removable drive"),
+                Tr.T("It's only backed up while the drive is plugged in; when it isn't, the folder shows as not found (nothing is removed from Immich)."),
+                Tr.T("Keep backing it up")))
+            return;
         AddChoice(path, selected: true);
     }
 
